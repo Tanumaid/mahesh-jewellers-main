@@ -3,92 +3,83 @@ import { createContext, useState, ReactNode, useEffect } from "react";
 interface CartItem {
   id: string;
   name: string;
-  price: string;
+  price: number;
   image: string;
   quantity: number;
-}
-
-interface Order {
-  orderId: string;
-  productName: string;
-  price: string;
-  image: string;
+  weight: number;
 }
 
 interface CartContextType {
   cart: CartItem[];
   addToCart: (product: CartItem) => void;
   removeFromCart: (id: string) => void;
-  placeOrder: (item: CartItem) => string;
+  clearCart: () => void;
 }
 
 export const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
 
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    const savedCart = localStorage.getItem("cartItems");
-    return savedCart ? JSON.parse(savedCart) : [];
-  });
+  // 🔥 USER STATE (IMPORTANT)
+  const [user, setUser] = useState(() =>
+    JSON.parse(localStorage.getItem("user") || "null")
+  );
 
-  const [orders, setOrders] = useState<Order[]>(() => {
-    const savedOrders = localStorage.getItem("orders");
-    return savedOrders ? JSON.parse(savedOrders) : [];
-  });
+  const [cart, setCart] = useState<CartItem[]>([]);
 
+  // 🔄 WATCH USER CHANGE (LOGIN / LOGOUT)
+ // 🔥 RELOAD USER WHEN COMPONENT RE-RENDERS
+useEffect(() => {
+  const updatedUser = JSON.parse(localStorage.getItem("user") || "null");
+  setUser(updatedUser);
+}, []);
+
+  // 🔥 LOAD CART WHEN USER CHANGES
   useEffect(() => {
-    localStorage.setItem("cartItems", JSON.stringify(cart));
-  }, [cart]);
+    const key = user?.email ? `cart_${user.email}` : "cart_guest";
 
+    const savedCart = localStorage.getItem(key);
+    setCart(savedCart ? JSON.parse(savedCart) : []);
+
+  }, [user]);
+
+  // 🔥 SAVE CART
   useEffect(() => {
-    localStorage.setItem("orders", JSON.stringify(orders));
-  }, [orders]);
+    const key = user?.email ? `cart_${user.email}` : "cart_guest";
+    localStorage.setItem(key, JSON.stringify(cart));
+  }, [cart, user]);
 
+  // ➕ ADD
   const addToCart = (product: CartItem) => {
-    setCart((prevCart) => {
-      const existing = prevCart.find((item) => item.id === product.id);
-
-      let updatedCart;
+    setCart((prev) => {
+      const existing = prev.find((item) => item.id === product.id);
 
       if (existing) {
-        updatedCart = prevCart.map((item) =>
+        return prev.map((item) =>
           item.id === product.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
-      } else {
-        updatedCart = [...prevCart, product];
       }
 
-      console.log("UPDATED CART:", updatedCart); // 👈 DEBUG
-
-      return updatedCart;
+      return [...prev, product];
     });
   };
 
+  // ❌ REMOVE
   const removeFromCart = (id: string) => {
-    setCart(cart.filter((item) => item.id !== id));
+    setCart((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const placeOrder = (item: CartItem) => {
-    const orderId = "ORD" + Math.floor(Math.random() * 100000);
-
-    const newOrder = {
-      orderId,
-      productName: item.name,
-      price: item.price,
-      image: item.image,
-    };
-
-    setOrders([...orders, newOrder]);
-
-    removeFromCart(item.id);
-
-    return orderId;
+  // 🧹 CLEAR
+  const clearCart = () => {
+    const key = user?.email ? `cart_${user.email}` : "cart_guest";
+    localStorage.removeItem(key);
+    setCart([]);
   };
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, placeOrder }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart }}>
       {children}
     </CartContext.Provider>
   );

@@ -34,7 +34,7 @@ const Login = () => {
       alert("Login successful");
 
       // ⭐ redirect to home
-      navigate("/");
+      window.location.reload();
     } catch (error) {
       alert("Invalid credentials");
     }

@@ -61,16 +61,17 @@ const ProductDetails = () => {
 
   // 🔥 Add to cart
   const handleAddToCart = () => {
-    addToCart({
-      id: product._id,
-      name: product.name,
-      price: calculatePrice(),
-      image: product.image,
-      quantity: 1,
-    });
+  addToCart({
+    id: product._id,
+    name: product.name,
+    price: calculatePrice(),
+    image: product.image,
+    quantity: 1,
+    weight: product.weight || "0", // ⭐ FIX
+  });
 
-    alert("Added to Cart ✅");
-  };
+  alert("Added to Cart ✅");
+};
 
   return (
     <div style={styles.container}>

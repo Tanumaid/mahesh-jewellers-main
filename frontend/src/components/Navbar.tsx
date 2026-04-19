@@ -14,7 +14,7 @@ const Navbar = () => {
   // 🔥 Logout
   const handleLogout = () => {
     localStorage.removeItem("user");
-    navigate("/login");
+    window.location.reload(); // ✅ FIXED
   };
 
   return (
@@ -42,12 +42,16 @@ const Navbar = () => {
         {user && (
           <>
             <li><Link to="/orders">My Orders</Link></li>
+            <li><Link to="/offers">Offers</Link></li>
 
-            {/* 🔥 Admin only */}
-            {user.email === "admin@gmail.com" && (
-              <li><Link to="/admin">Admin</Link></li>
+            {/* 🔥 Admin only (UPDATED) */}
+            {user?.isAdmin && (
+              <li>
+                <Link to="/admin" onClick={() => console.log("Admin Clicked")}>
+                  Admin
+                </Link>
+              </li>
             )}
-
             <li style={styles.userName}>👤 {user.name}</li>
 
             <li>
@@ -61,8 +65,12 @@ const Navbar = () => {
         {/* 🔥 If NOT logged in */}
         {!user && (
           <>
-            <li><Link to="/register">Register</Link></li>
-            <li><Link to="/login">Login</Link></li>
+            {!user && (
+              <>
+                <li><Link to="/register">Register</Link></li>
+                <li><Link to="/login">Login</Link></li>
+              </>
+            )}
           </>
         )}
 
@@ -79,7 +87,7 @@ const styles = {
     alignItems: "center",
     padding: "12px 40px",
     backgroundColor: "#000",
-    flexWrap: "wrap" as const, // ✅ responsive
+    flexWrap: "wrap" as const,
   },
 
   logoBox: {
@@ -106,7 +114,7 @@ const styles = {
     gap: "20px",
     alignItems: "center",
     color: "white",
-    flexWrap: "wrap" as const, // ✅ mobile fix
+    flexWrap: "wrap" as const,
   },
 
   logoutBtn: {

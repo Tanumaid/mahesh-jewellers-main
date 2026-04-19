@@ -15,6 +15,13 @@ import Admin from "./pages/Admin";
 import Orders from "./pages/Orders";
 import OrderSuccess from "./pages/OrderSuccess";
 import Wishlist from "./pages/Wishlist";
+import Offers from "./pages/Offers";
+
+import ProductsAdmin from "./pages/admin/ProductsAdmin";
+import UsersAdmin from "./pages/admin/UsersAdmin";
+import Analytics from "./pages/admin/Analytics";
+import GoldRateAdmin from "./pages/admin/GoldRateAdmin";
+import OrdersAdmin from "./pages/admin/OrdersAdmin";
 
 function App() {
 
@@ -29,19 +36,17 @@ function App() {
       {/* ✅ Routes */}
       <Routes>
 
+        {/* 🌐 Public */}
         <Route path="/" element={<Home />} />
         <Route path="/products" element={<Products />} />
-
-        {/* 🔥 Product Details */}
         <Route path="/product/:id" element={<ProductDetails />} />
-
         <Route path="/cart" element={<Cart />} />
 
         {/* 🔐 Auth */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* 🔥 Protected Routes */}
+        {/* 🔒 User Protected */}
         <Route
           path="/orders"
           element={user ? <Orders /> : <Navigate to="/login" />}
@@ -52,17 +57,44 @@ function App() {
           element={user ? <Wishlist /> : <Navigate to="/login" />}
         />
 
-        {/* 🔥 Admin Protected */}
         <Route
-          path="/admin"
-          element={
-            user?.email === "admin@gmail.com"
-              ? <Admin />
-              : <Navigate to="/" />
-          }
+          path="/offers"
+          element={user ? <Offers /> : <Navigate to="/login" />}
         />
 
-        {/* 🔥 Order Success */}
+        {/* 🔥 Admin Main */}
+        <Route
+          path="/admin"
+          element={user?.isAdmin ? <Admin /> : <Navigate to="/" />}
+        />
+
+        {/* ✅ FIXED ADMIN ROUTES (MOVED INSIDE) */}
+        <Route
+          path="/admin/products"
+          element={user?.isAdmin ? <ProductsAdmin /> : <Navigate to="/" />}
+        />
+
+        <Route
+          path="/admin/users"
+          element={user?.isAdmin ? <UsersAdmin /> : <Navigate to="/" />}
+        />
+
+        <Route
+          path="/admin/analytics"
+          element={user?.isAdmin ? <Analytics /> : <Navigate to="/" />}
+        />
+
+        <Route
+          path="/admin/goldrate"
+          element={user?.isAdmin ? <GoldRateAdmin /> : <Navigate to="/" />}
+        />
+
+        <Route
+          path="/admin/orders"
+          element={user?.isAdmin ? <OrdersAdmin /> : <Navigate to="/" />}
+        />
+
+        {/* 🎉 Order Success */}
         <Route path="/order-success" element={<OrderSuccess />} />
 
       </Routes>

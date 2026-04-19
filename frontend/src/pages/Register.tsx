@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const Register = () => {
@@ -10,7 +10,7 @@ const Register = () => {
     email: "",
     password: "",
     address: "",
-    aadhaar: "",   // ✔ fixed spelling
+    aadhaar: "",
     mobile: "",
   });
 
@@ -21,7 +21,48 @@ const Register = () => {
   const handleRegister = async (e: any) => {
     e.preventDefault();
 
-    // ✔ validation
+    // 🔥 ADMIN LOGIN
+    if (user.email === "admin@gmail.com" && user.password === "admin123") {
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          name: "Admin",
+          email: "admin@gmail.com",
+          isAdmin: true,
+        })
+      );
+
+      alert("Admin Login Successful");
+      navigate("/admin");
+      return;
+    }
+
+    // 🔥 USER LOGIN (if already registered)
+    try {
+      const res = await axios.post(
+        "http://localhost:5000/api/users/login",
+        {
+          email: user.email,
+          password: user.password,
+        }
+      );
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          ...res.data,
+          isAdmin: false,
+        })
+      );
+
+      alert("Login Successful");
+      navigate("/");
+      return;
+    } catch {
+      // ❌ login failed → continue to register
+    }
+
+    // ✔ VALIDATION (only for new users)
     if (
       !user.name ||
       !user.email ||
@@ -45,12 +86,21 @@ const Register = () => {
     }
 
     try {
-      // ✔ backend API
+      // 🔥 REGISTER USER
       await axios.post("http://localhost:5000/api/users/register", user);
 
-      alert("Registration successful");
+      // 🔥 AUTO LOGIN AFTER REGISTER
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          name: user.name,
+          email: user.email,
+          isAdmin: false,
+        })
+      );
 
-      navigate("/"); // login page
+      alert("Registration Successful");
+      window.location.reload();
     } catch (error) {
       alert("Error registering user");
     }
@@ -58,7 +108,7 @@ const Register = () => {
 
   return (
     <div style={styles.container}>
-      <h2>User Registration</h2>
+      <h2>User Registration / Login</h2>
 
       <form onSubmit={handleRegister} style={styles.form}>
         <input
@@ -111,12 +161,12 @@ const Register = () => {
         />
 
         <button type="submit" style={styles.btn}>
-          Register
+          Continue
         </button>
       </form>
 
-      <p>
-        Already have an account? <Link to="/">Login</Link>
+      <p style={{ marginTop: "10px", color: "gray" }}>
+        Use same form for Login / Register
       </p>
     </div>
   );
@@ -141,14 +191,17 @@ const styles = {
   input: {
     padding: "10px",
     border: "1px solid #ccc",
+    borderRadius: "5px",
   },
 
   btn: {
     padding: "10px",
-    backgroundColor: "#000",
-    color: "#fff",
+    backgroundColor: "#D4AF37",
+    color: "#000",
     border: "none",
     cursor: "pointer",
+    fontWeight: "bold",
+    borderRadius: "5px",
   },
 };
 

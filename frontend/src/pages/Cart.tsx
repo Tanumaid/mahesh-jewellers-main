@@ -1,45 +1,77 @@
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { CartContext } from "../context/CartContext";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const Cart = () => {
-  const { cart, removeFromCart, placeOrder } = useContext(CartContext)!;
+  const { cart, removeFromCart, clearCart } = useContext(CartContext)!;
   const navigate = useNavigate();
+
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  // ⭐🔥 ADD THIS FUNCTION HERE
+  const convertToGrams = (weightStr: any) => {
+    if (!weightStr) return 1;
+
+    if (typeof weightStr === "number") return weightStr;
+
+    if (weightStr.includes("tola")) {
+      return parseFloat(weightStr) * 11.66; // 1 tola = 11.66g
+    }
+
+    if (weightStr.includes("g")) {
+      return parseFloat(weightStr);
+    }
+
+    return Number(weightStr) || 1;
+  };
 
   const handlePlaceOrder = async (item: any) => {
     try {
       const user = JSON.parse(localStorage.getItem("user") || "{}");
 
       if (!user.email) {
-        alert("Please login first");
+        alert("Login required");
         navigate("/login");
         return;
       }
 
-      // ✅ SINGLE API CALL (FIXED)
-      const res = await axios.post("http://localhost:5000/api/orders", {
+      setLoadingId(item.id); // 🔥 disable button
+
+      const orderData = {
         productName: item.name,
-        price: item.price,
+        price: Number(item.price),
         image: item.image,
-        userEmail: user.email, // 🔥 dynamic user
-      });
+        userEmail: user.email,
+        userName: user.name,
+        weight: convertToGrams(item.weight), // ⭐ FIXED HERE
+      };
+
+      const res = await axios.post(
+        "http://localhost:5000/api/orders",
+        orderData
+      );
 
       const orderId = res.data.orderId;
 
-      // ✅ Update local context
-      placeOrder(item);
+      clearCart(); // clear cart after success
 
-      // ✅ Navigate to success page
       navigate("/order-success", {
         state: { orderId },
       });
 
-    } catch (error) {
-      console.log(error);
-      alert("Error placing order");
+    } catch (error: any) {
+      console.log(error.response?.data);
+      alert(error.response?.data?.message || "Error placing order");
+    } finally {
+      setLoadingId(null); // 🔥 reset button
     }
   };
+
+  // 🔥 Total calculation
+  const totalAmount = cart.reduce((sum, item) => {
+    return sum + Number(item.price || 0);
+  }, 0);
 
   if (cart.length === 0) {
     return (
@@ -64,13 +96,22 @@ const Cart = () => {
           <div style={{ flex: 1 }}>
             <h3>{item.name}</h3>
             <p>₹{item.price}</p>
+
+            <p style={styles.weightText}>
+              Weight: {item.weight || "Not set"}
+            </p>
           </div>
 
           <button
-            style={styles.orderBtn}
+            style={{
+              ...styles.orderBtn,
+              opacity: loadingId === item.id ? 0.6 : 1,
+              cursor: loadingId === item.id ? "not-allowed" : "pointer",
+            }}
+            disabled={loadingId === item.id}
             onClick={() => handlePlaceOrder(item)}
           >
-            Place Order
+            {loadingId === item.id ? "Placing..." : "Place Order"}
           </button>
 
           <button
@@ -81,6 +122,10 @@ const Cart = () => {
           </button>
         </div>
       ))}
+
+      <div style={styles.totalBox}>
+        Total Amount: ₹{totalAmount.toFixed(2)}
+      </div>
     </div>
   );
 };
@@ -101,6 +146,11 @@ const styles = {
     objectFit: "cover" as const,
   },
 
+  weightText: {
+    fontSize: "12px",
+    color: "gray",
+  },
+
   removeBtn: {
     padding: "8px 15px",
     backgroundColor: "red",
@@ -114,7 +164,6 @@ const styles = {
     backgroundColor: "#D4AF37",
     color: "#000",
     border: "none",
-    cursor: "pointer",
     fontWeight: "bold",
   },
 
@@ -125,6 +174,14 @@ const styles = {
     color: "#fff",
     border: "none",
     cursor: "pointer",
+  },
+
+  totalBox: {
+    marginTop: "30px",
+    textAlign: "right" as const,
+    fontSize: "20px",
+    fontWeight: "bold",
+    color: "#D4AF37",
   },
 };
 
