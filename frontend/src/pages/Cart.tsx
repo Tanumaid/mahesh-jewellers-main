@@ -9,14 +9,13 @@ const Cart = () => {
 
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
-  // ⭐🔥 ADD THIS FUNCTION HERE
   const convertToGrams = (weightStr: any) => {
     if (!weightStr) return 1;
 
     if (typeof weightStr === "number") return weightStr;
 
     if (weightStr.includes("tola")) {
-      return parseFloat(weightStr) * 11.66; // 1 tola = 11.66g
+      return parseFloat(weightStr) * 11.66;
     }
 
     if (weightStr.includes("g")) {
@@ -26,7 +25,31 @@ const Cart = () => {
     return Number(weightStr) || 1;
   };
 
+  // 🔥 TIME LEFT FUNCTION
+  const getRemainingTime = (addedAt: number) => {
+    if (!addedAt) return "Unknown";
+
+    const diff = 24 * 60 * 60 * 1000 - (Date.now() - addedAt);
+
+    if (diff <= 0) return "Expired";
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff / (1000 * 60)) % 60);
+
+    return `${hours}h ${minutes}m left`;
+  };
+
+  const isExpired = (addedAt: number) => {
+    return Date.now() - addedAt > 24 * 60 * 60 * 1000;
+  };
+
   const handlePlaceOrder = async (item: any) => {
+    // 🔥 BLOCK EXPIRED ITEMS
+    if (isExpired(item.addedAt)) {
+      alert("This item has expired ❌");
+      return;
+    }
+
     try {
       const user = JSON.parse(localStorage.getItem("user") || "{}");
 
@@ -36,7 +59,7 @@ const Cart = () => {
         return;
       }
 
-      setLoadingId(item.id); // 🔥 disable button
+      setLoadingId(item.id);
 
       const orderData = {
         productName: item.name,
@@ -44,7 +67,7 @@ const Cart = () => {
         image: item.image,
         userEmail: user.email,
         userName: user.name,
-        weight: convertToGrams(item.weight), // ⭐ FIXED HERE
+        weight: convertToGrams(item.weight),
       };
 
       const res = await axios.post(
@@ -54,7 +77,7 @@ const Cart = () => {
 
       const orderId = res.data.orderId;
 
-      clearCart(); // clear cart after success
+      clearCart();
 
       navigate("/order-success", {
         state: { orderId },
@@ -64,11 +87,10 @@ const Cart = () => {
       console.log(error.response?.data);
       alert(error.response?.data?.message || "Error placing order");
     } finally {
-      setLoadingId(null); // 🔥 reset button
+      setLoadingId(null);
     }
   };
 
-  // 🔥 Total calculation
   const totalAmount = cart.reduce((sum, item) => {
     return sum + Number(item.price || 0);
   }, 0);
@@ -89,39 +111,63 @@ const Cart = () => {
     <div style={{ padding: "40px" }}>
       <h2>Your Cart</h2>
 
-      {cart.map((item) => (
-        <div key={item.id} style={styles.cartItem}>
-          <img src={item.image} alt={item.name} style={styles.image} />
+      {cart.map((item) => {
+        const expired = isExpired(item.addedAt);
 
-          <div style={{ flex: 1 }}>
-            <h3>{item.name}</h3>
-            <p>₹{item.price}</p>
+        return (
+          <div key={item.id} style={styles.cartItem}>
+            <img src={item.image} alt={item.name} style={styles.image} />
 
-            <p style={styles.weightText}>
-              Weight: {item.weight || "Not set"}
-            </p>
+            <div style={{ flex: 1 }}>
+              <h3>{item.name}</h3>
+              <p>₹{item.price}</p>
+
+              <p style={styles.weightText}>
+                Weight: {item.weight || "Not set"}
+              </p>
+
+              {/* 🔥 TIMER DISPLAY */}
+              <p
+                style={{
+                  color: expired ? "gray" : "red",
+                  fontSize: "13px",
+                  fontWeight: "bold",
+                }}
+              >
+                ⏳ {getRemainingTime(item.addedAt)}
+              </p>
+            </div>
+
+            <button
+              style={{
+                ...styles.orderBtn,
+                opacity:
+                  loadingId === item.id || expired ? 0.5 : 1,
+                cursor:
+                  loadingId === item.id || expired
+                    ? "not-allowed"
+                    : "pointer",
+                backgroundColor: expired ? "gray" : "#D4AF37",
+              }}
+              disabled={loadingId === item.id || expired}
+              onClick={() => handlePlaceOrder(item)}
+            >
+              {expired
+                ? "Expired"
+                : loadingId === item.id
+                ? "Placing..."
+                : "Place Order"}
+            </button>
+
+            <button
+              style={styles.removeBtn}
+              onClick={() => removeFromCart(item.id)}
+            >
+              Remove
+            </button>
           </div>
-
-          <button
-            style={{
-              ...styles.orderBtn,
-              opacity: loadingId === item.id ? 0.6 : 1,
-              cursor: loadingId === item.id ? "not-allowed" : "pointer",
-            }}
-            disabled={loadingId === item.id}
-            onClick={() => handlePlaceOrder(item)}
-          >
-            {loadingId === item.id ? "Placing..." : "Place Order"}
-          </button>
-
-          <button
-            style={styles.removeBtn}
-            onClick={() => removeFromCart(item.id)}
-          >
-            Remove
-          </button>
-        </div>
-      ))}
+        );
+      })}
 
       <div style={styles.totalBox}>
         Total Amount: ₹{totalAmount.toFixed(2)}

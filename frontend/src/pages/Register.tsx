@@ -19,11 +19,13 @@ const Register = () => {
 
   const handleChange = (e: any) => {
     setUser({ ...user, [e.target.name]: e.target.value });
-    setError(""); // clear error while typing
+    setError("");
   };
 
+  // ✅ VALIDATION
   const validate = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const nameRegex = /^[A-Za-z\s]+$/;
 
     if (
       !user.name ||
@@ -36,20 +38,33 @@ const Register = () => {
       return "Please fill all fields";
     }
 
+    // 🔤 NAME VALIDATION
+    if (!nameRegex.test(user.name)) {
+      return "Name should contain only letters";
+    }
+
+    if (user.name.length < 3) {
+      return "Name must be at least 3 characters";
+    }
+
+    // 📧 EMAIL
     if (!emailRegex.test(user.email)) {
       return "Invalid email format";
     }
 
+    // 🔐 PASSWORD
     if (user.password.length < 6) {
       return "Password must be at least 6 characters";
     }
 
-    if (user.aadhaar.length !== 12) {
-      return "Aadhaar must be 12 digits";
+    // 🆔 AADHAAR (ONLY DIGITS)
+    if (!/^\d{12}$/.test(user.aadhaar)) {
+      return "Aadhaar must be exactly 12 digits";
     }
 
-    if (user.mobile.length !== 10) {
-      return "Mobile must be 10 digits";
+    // 📱 MOBILE (ONLY DIGITS)
+    if (!/^\d{10}$/.test(user.mobile)) {
+      return "Mobile must be exactly 10 digits";
     }
 
     return "";
@@ -67,7 +82,10 @@ const Register = () => {
     try {
       setLoading(true);
 
-      await axios.post("http://localhost:5000/api/users/register", user);
+      await axios.post("http://localhost:5000/api/users/register", {
+        ...user,
+        email: user.email.toLowerCase(), // ✅ normalize
+      });
 
       alert("Registration Successful ✅");
 
@@ -88,17 +106,54 @@ const Register = () => {
 
         {error && <p style={styles.error}>{error}</p>}
 
-        <input name="name" placeholder="Full Name" value={user.name} onChange={handleChange} style={styles.input} />
+        <input
+          name="name"
+          placeholder="Full Name"
+          value={user.name}
+          onChange={handleChange}
+          style={styles.input}
+        />
 
-        <input name="email" placeholder="Email" value={user.email} onChange={handleChange} style={styles.input} />
+        <input
+          name="email"
+          placeholder="Email"
+          value={user.email}
+          onChange={handleChange}
+          style={styles.input}
+        />
 
-        <input type="password" name="password" placeholder="Password" value={user.password} onChange={handleChange} style={styles.input} />
+        <input
+          type="password"
+          name="password"
+          placeholder="Password"
+          value={user.password}
+          onChange={handleChange}
+          style={styles.input}
+        />
 
-        <input name="address" placeholder="Address" value={user.address} onChange={handleChange} style={styles.input} />
+        <input
+          name="address"
+          placeholder="Address"
+          value={user.address}
+          onChange={handleChange}
+          style={styles.input}
+        />
 
-        <input name="aadhaar" placeholder="Aadhaar Number" value={user.aadhaar} onChange={handleChange} style={styles.input} />
+        <input
+          name="aadhaar"
+          placeholder="Aadhaar Number"
+          value={user.aadhaar}
+          onChange={handleChange}
+          style={styles.input}
+        />
 
-        <input name="mobile" placeholder="Mobile Number" value={user.mobile} onChange={handleChange} style={styles.input} />
+        <input
+          name="mobile"
+          placeholder="Mobile Number"
+          value={user.mobile}
+          onChange={handleChange}
+          style={styles.input}
+        />
 
         <button type="submit" style={styles.btn} disabled={loading}>
           {loading ? "Registering..." : "Register"}

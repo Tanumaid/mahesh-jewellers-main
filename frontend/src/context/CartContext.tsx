@@ -7,12 +7,13 @@ interface CartItem {
   image: string;
   quantity: number;
   weight: number;
+  addedAt: number; // 🔥 NEW
 }
 
 interface CartContextType {
   cart: CartItem[];
-  user: any; // 🔥 ADD
-  updateUser: (user: any) => void; // 🔥 ADD
+  user: any;
+  updateUser: (user: any) => void;
   addToCart: (product: CartItem) => void;
   removeFromCart: (id: string) => void;
   clearCart: () => void;
@@ -22,30 +23,36 @@ export const CartContext = createContext<CartContextType | undefined>(undefined)
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
 
-  // 🔥 USER STATE
   const [user, setUser] = useState(() =>
     JSON.parse(localStorage.getItem("user") || "null")
   );
 
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  // ✅ UPDATE USER (IMPORTANT FIX)
   const updateUser = (newUser: any) => {
     if (newUser) {
       localStorage.setItem("user", JSON.stringify(newUser));
     } else {
       localStorage.removeItem("user");
     }
-
     setUser(newUser);
   };
 
-  // 🔥 LOAD CART WHEN USER CHANGES
+  // 🔥 LOAD CART
   useEffect(() => {
     const key = user?.email ? `cart_${user.email}` : "cart_guest";
-
     const savedCart = localStorage.getItem(key);
-    setCart(savedCart ? JSON.parse(savedCart) : []);
+
+    let parsedCart = savedCart ? JSON.parse(savedCart) : [];
+
+    // 🔥 REMOVE EXPIRED ITEMS
+    const now = Date.now();
+    parsedCart = parsedCart.filter((item: CartItem) => {
+      return now - item.addedAt < 24 * 60 * 60 * 1000;
+    });
+
+    setCart(parsedCart);
+
   }, [user]);
 
   // 🔥 SAVE CART
@@ -67,16 +74,20 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         );
       }
 
-      return [...prev, product];
+      return [
+        ...prev,
+        {
+          ...product,
+          addedAt: Date.now(), // 🔥 TIME SAVED
+        },
+      ];
     });
   };
 
-  // ❌ REMOVE
   const removeFromCart = (id: string) => {
     setCart((prev) => prev.filter((item) => item.id !== id));
   };
 
-  // 🧹 CLEAR
   const clearCart = () => {
     const key = user?.email ? `cart_${user.email}` : "cart_guest";
     localStorage.removeItem(key);
@@ -87,8 +98,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     <CartContext.Provider
       value={{
         cart,
-        user,           // ✅ EXPOSE
-        updateUser,     // ✅ EXPOSE
+        user,
+        updateUser,
         addToCart,
         removeFromCart,
         clearCart

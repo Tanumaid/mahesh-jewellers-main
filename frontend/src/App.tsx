@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 // Components
 import Navbar from "./components/Navbar";
@@ -11,12 +11,14 @@ import ProductDetails from "./pages/ProductDetails";
 import Cart from "./pages/Cart";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
 
 import Orders from "./pages/Orders";
 import OrderSuccess from "./pages/OrderSuccess";
 import Wishlist from "./pages/Wishlist";
 import Offers from "./pages/Offers";
 
+// Admin
 import Admin from "./pages/Admin";
 import ProductsAdmin from "./pages/admin/ProductsAdmin";
 import UsersAdmin from "./pages/admin/UsersAdmin";
@@ -28,16 +30,17 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminLayout from "./pages/AdminLayout";
 import Dashboard from "./pages/admin/Dashboard";
 
-function App() {
 
+// 🔥 Wrapper to use useLocation properly
+const AppContent = () => {
+  const location = useLocation();
   const user = JSON.parse(localStorage.getItem("user") || "null");
 
   return (
-    <Router>
+    <>
+      {/* ✅ FIXED NAVBAR CONDITION */}
+      {!location.pathname.startsWith("/admin") && <Navbar />}
 
-      {!window.location.pathname.startsWith("/admin") && <Navbar />}
-
-      {/* ✅ Routes */}
       <Routes>
 
         {/* 🌐 Public */}
@@ -49,9 +52,9 @@ function App() {
         {/* 🔐 Auth */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         <Route path="/admin-login" element={<AdminLogin />} />
-        <Route path="manage" element={<Admin />} />
 
         {/* 🔒 User Protected */}
         <Route
@@ -69,9 +72,7 @@ function App() {
           element={user ? <Offers /> : <Navigate to="/login" />}
         />
 
-        {/* 🔥 Admin Main */}
-
-
+        {/* 🔥 Admin Routes */}
         <Route
           path="/admin"
           element={
@@ -80,17 +81,13 @@ function App() {
             </AdminRoute>
           }
         >
-
           <Route index element={<Dashboard />} />
           <Route path="products" element={<ProductsAdmin />} />
           <Route path="orders" element={<OrdersAdmin />} />
           <Route path="users" element={<UsersAdmin />} />
           <Route path="goldrate" element={<GoldRateAdmin />} />
           <Route path="analytics" element={<Analytics />} />
-
-          {/* ✅ ADD THIS */}
           <Route path="manage" element={<Admin />} />
-
         </Route>
 
         {/* 🎉 Order Success */}
@@ -98,9 +95,16 @@ function App() {
 
       </Routes>
 
-      {/* ✅ Footer */}
       <Footer />
+    </>
+  );
+};
 
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
     </Router>
   );
 }

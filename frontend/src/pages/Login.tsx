@@ -116,7 +116,7 @@ const Login = () => {
 
       <p
         style={{ marginTop: "10px", color: "red", cursor: "pointer" }}
-        onClick={() => alert("Forgot Password feature coming soon")}
+        onClick={() => navigate("/forgot-password")}
       >
         Forgot Password?
       </p>
