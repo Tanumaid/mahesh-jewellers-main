@@ -12,8 +12,8 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    // ✅ CHECK EMAIL
-    const existingEmail = await User.findOne({ email });
+    // ✅ CHECK EMAIL (case-insensitive)
+    const existingEmail = await User.findOne({ email: new RegExp('^' + email + '$', "i") });
     if (existingEmail) {
       return res.status(400).json({ message: "Email already registered" });
     }
@@ -24,7 +24,7 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ message: "Aadhaar already registered" });
     }
 
-    const newUser = new User(req.body);
+    const newUser = new User({ ...req.body, email: email.toLowerCase() });
     await newUser.save();
 
     res.json({
@@ -67,8 +67,8 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Email & password required" });
     }
 
-    // Find user
-    const user = await User.findOne({ email: email.toLowerCase() });
+    // Find user (case-insensitive)
+    const user = await User.findOne({ email: new RegExp('^' + email + '$', "i") });
 
     if (!user) {
       return res.status(400).json({ message: "User not found" });
@@ -108,7 +108,7 @@ router.get("/", async (req, res) => {
 router.post("/admin-login", async (req, res) => {
   const { email, password } = req.body;
 
-  if (email === "admin@gmail.com" && password === "admin123") {
+  if (email && email.toLowerCase() === "admin@gmail.com" && password === "admin123") {
     return res.json({
       name: "Admin",
       email: "admin@gmail.com",
@@ -129,7 +129,7 @@ router.post("/reset-password", async (req, res) => {
       return res.status(400).json({ message: "All fields required" });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await User.findOne({ email: new RegExp('^' + email + '$', "i") });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
