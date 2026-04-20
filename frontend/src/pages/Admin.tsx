@@ -16,11 +16,7 @@ const Admin = () => {
     quantity: "",
   });
 
-  const categoriesData: Record<string, string[]> = {
-    "Gold": ["Ring", "Bangles", "Mangalsutra", "Chain", "Necklace"],
-    "Silver": ["Anklet", "Jodvi", "Chain", "Ring"],
-    "Temple Jewellery": ["Necklace", "Earrings", "Sets"]
-  };
+  const [categoriesData, setCategoriesData] = useState<Record<string, string[]>>({});
 
   const [products, setProducts] = useState<any[]>([]);
   const [editId, setEditId] = useState<string | null>(null);
@@ -33,6 +29,9 @@ const Admin = () => {
 
   useEffect(() => {
     fetchProducts();
+    axios.get("http://localhost:5000/api/categories")
+      .then(res => setCategoriesData(res.data || {}))
+      .catch(() => setCategoriesData({}));
   }, []);
 
   const handleChange = (e: any) => {

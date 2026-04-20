@@ -6,15 +6,10 @@ import type { Product } from "../types/Product";
 import CategoryFilter from "../components/CategoryFilter";
 import SubcategoryFilter from "../components/SubcategoryFilter";
 
-const categoriesData: Record<string, string[]> = {
-  "Gold": ["Ring", "Bangles", "Mangalsutra", "Chain", "Necklace"],
-  "Silver": ["Anklet", "Jodvi", "Chain", "Ring"],
-  "Temple Jewellery": ["Necklace", "Earrings", "Sets"]
-};
-
 const Products = () => {
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [categoriesData, setCategoriesData] = useState<Record<string, string[]>>({});
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedSubcategory, setSelectedSubcategory] = useState("");
@@ -40,9 +35,11 @@ const Products = () => {
 
         const productRes = await axios.get(url);
         const goldRes = await axios.get("http://localhost:5000/api/goldrate");
+        const categoryRes = await axios.get("http://localhost:5000/api/categories");
 
         setProducts(productRes.data || []);
         setGoldRates(goldRes.data?.rates || {});
+        setCategoriesData(categoryRes.data || {});
       } catch {
         setError("Failed to load data");
       } finally {
