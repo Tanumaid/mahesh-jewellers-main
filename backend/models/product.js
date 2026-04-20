@@ -10,7 +10,8 @@ makingCharges:String,
 gst:String,
 image:String,
 category:String,
-subcategory:String
+subcategory:String,
+quantity: { type: Number, default: 0 }
 
 });
 

@@ -125,8 +125,25 @@ const Products = () => {
 
             <p style={styles.price}>₹{calculatePrice(product)}</p>
 
+            {/* Stock Status */}
+            {product.stockStatus && (
+              <p style={{ 
+                fontWeight: "bold", 
+                marginTop: "5px", 
+                color: product.stockStatus === "In Stock" ? "#27ae60" : 
+                       product.stockStatus === "Out of Stock" ? "#e74c3c" : "#e67e22" 
+              }}>
+                {product.stockStatus}
+              </p>
+            )}
+
             <button
-              style={styles.btn}
+              style={{
+                ...styles.btn,
+                opacity: product.quantity === 0 ? 0.5 : 1,
+                cursor: product.quantity === 0 ? "not-allowed" : "pointer"
+              }}
+              disabled={product.quantity === 0}
               onClick={() => {
                 addToCart({
                   id: product._id,
@@ -140,7 +157,7 @@ const Products = () => {
                 alert("Added to Cart ✅");
               }}
             >
-              Add to Cart
+              {product.quantity === 0 ? "Out of Stock" : "Add to Cart"}
             </button>
 
           </div>

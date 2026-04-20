@@ -9,4 +9,6 @@ export interface Product {
   gst?: string;
   category?: string;
   subcategory?: string;
+  quantity?: number;
+  stockStatus?: string;
 }

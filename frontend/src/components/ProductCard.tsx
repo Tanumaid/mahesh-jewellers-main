@@ -84,8 +84,28 @@ const ProductCard = ({ product }: any) => {
       {/* 🔥 Dynamic Price */}
       <p style={styles.price}>₹{calculatePrice()}</p>
 
-      <button style={styles.btn} onClick={handleAddToCart}>
-        Add To Cart
+      {/* Stock Status */}
+      {product.stockStatus && (
+        <p style={{ 
+          fontWeight: "bold", 
+          marginTop: "5px", 
+          color: product.stockStatus === "In Stock" ? "#27ae60" : 
+                 product.stockStatus === "Out of Stock" ? "#e74c3c" : "#e67e22" 
+        }}>
+          {product.stockStatus}
+        </p>
+      )}
+
+      <button 
+        style={{
+          ...styles.btn, 
+          opacity: product.quantity === 0 ? 0.5 : 1, 
+          cursor: product.quantity === 0 ? "not-allowed" : "pointer"
+        }} 
+        onClick={handleAddToCart}
+        disabled={product.quantity === 0}
+      >
+        {product.quantity === 0 ? "Out of Stock" : "Add To Cart"}
       </button>
 
       <button style={styles.wishlistBtn} onClick={addToWishlist}>

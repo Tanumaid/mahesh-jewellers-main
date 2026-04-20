@@ -2,6 +2,12 @@ const express = require("express");
 const router = express.Router();
 const Product = require("../models/product");
 
+const getStockStatus = (quantity) => {
+  if (quantity > 2) return "In Stock";
+  if (quantity === 2) return "Only 2 left";
+  if (quantity === 1) return "Only 1 left";
+  return "Out of Stock";
+};
 
 // ✅ GET ALL PRODUCTS (With Filtering)
 router.get("/", async (req, res) => {
@@ -12,8 +18,12 @@ router.get("/", async (req, res) => {
     if (category) query.category = category;
     if (subcategory) query.subcategory = subcategory;
 
-    const products = await Product.find(query);
-    res.json(products);
+    const products = await Product.find(query).lean();
+    const productsWithStock = products.map((p) => ({
+      ...p,
+      stockStatus: getStockStatus(p.quantity || 0),
+    }));
+    res.json(productsWithStock);
   } catch (err) {
     res.status(500).json({ message: "Error fetching products" });
   }
@@ -23,7 +33,7 @@ router.get("/", async (req, res) => {
 // ✅ ADD PRODUCT (ADMIN)
 router.post("/", async (req, res) => {
   try {
-    const { name, price, weight, purity, makingCharges, gst, image, category, subcategory } = req.body;
+    const { name, price, weight, purity, makingCharges, gst, image, category, subcategory, quantity } = req.body;
 
     if (!name || !weight || !purity || !makingCharges || !gst || !category || !subcategory) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -39,6 +49,7 @@ router.post("/", async (req, res) => {
       image,
       category,
       subcategory,
+      quantity: quantity || 0,
     });
 
     await product.save();

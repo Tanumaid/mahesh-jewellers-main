@@ -13,6 +13,7 @@ const Admin = () => {
     image: "",
     category: "",
     subcategory: "",
+    quantity: "",
   });
 
   const categoriesData: Record<string, string[]> = {
@@ -44,8 +45,8 @@ const Admin = () => {
   const handleSubmit = async () => {
 
     // ✅ VALIDATION
-    if (!form.name || !form.weight || !form.purity || !form.makingCharges || !form.gst || !form.category || !form.subcategory) {
-      alert("Please fill all required fields, including category and subcategory.");
+    if (!form.name || !form.weight || !form.purity || !form.makingCharges || !form.gst || !form.category || !form.subcategory || form.quantity === "") {
+      alert("Please fill all required fields, including quantity, category, and subcategory.");
       return;
     }
 
@@ -71,6 +72,7 @@ const Admin = () => {
         image: "",
         category: "",
         subcategory: "",
+        quantity: "",
       });
 
     } catch {
@@ -141,6 +143,8 @@ const Admin = () => {
           <input name="makingCharges" value={form.makingCharges} onChange={handleChange} placeholder="Making Charges ₹" style={styles.input} />
 
           <input name="gst" value={form.gst} onChange={handleChange} placeholder="GST %" style={styles.input} />
+
+          <input name="quantity" type="number" value={form.quantity} onChange={handleChange} placeholder="Quantity" style={styles.input} />
         </div>
 
         <input

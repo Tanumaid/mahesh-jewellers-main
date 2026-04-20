@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Order = require("../models/order");
+const Product = require("../models/product");
 
 // ⭐ Generate Order ID
 const generateOrderId = () => {
@@ -14,6 +15,16 @@ router.post("/", async (req, res) => {
 
     if (!productName || !price || !userEmail) {
       return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    // Verify stock and decrement
+    const product = await Product.findOne({ name: productName });
+    if (product) {
+      if (product.quantity <= 0) {
+        return res.status(400).json({ message: "Product is out of stock" });
+      }
+      product.quantity -= 1;
+      await product.save();
     }
 
     const newOrder = new Order({
