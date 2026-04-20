@@ -96,6 +96,26 @@ const Admin = () => {
 
       <h1 style={styles.heading}>⚙️ Admin Dashboard</h1>
 
+      {/* 📊 DASHBOARD METRICS */}
+      <div style={styles.dashboardGrid}>
+        <div style={styles.metricCard}>
+          <h3>Total Products</h3>
+          <p style={styles.metricValue}>{products.length}</p>
+        </div>
+        <div style={styles.metricCard}>
+          <h3>Out of Stock</h3>
+          <p style={{ ...styles.metricValue, color: "#e74c3c" }}>
+            {products.filter((p) => p.quantity === 0).length}
+          </p>
+        </div>
+        <div style={styles.metricCard}>
+          <h3>Low Stock</h3>
+          <p style={{ ...styles.metricValue, color: "#e67e22" }}>
+            {products.filter((p) => p.lowStock).length}
+          </p>
+        </div>
+      </div>
+
       {/* 🛍 PRODUCT FORM */}
       <div style={styles.fullWidthCard}>
         <h3 style={styles.cardTitle}>
@@ -172,6 +192,18 @@ const Admin = () => {
             <p style={styles.meta}>{p.weight} g | {p.purity}</p>
             <p style={styles.meta}>{p.category} - {p.subcategory}</p>
 
+            {/* Low Stock Warning */}
+            {p.lowStock && (
+              <p style={{ color: "#e74c3c", fontWeight: "bold", fontSize: "12px", marginTop: "5px" }}>
+                {p.quantity === 0 ? "❌ Out of Stock" : "⚠️ Low Stock"}
+              </p>
+            )}
+            {p.lowStock && p.soldCount >= 5 && (
+              <p style={{ color: "#e67e22", fontWeight: "bold", fontSize: "12px" }}>
+                ⚠️ Restock Recommended
+              </p>
+            )}
+
             <button style={styles.editBtn} onClick={() => handleEdit(p)}>
               Edit
             </button>
@@ -192,6 +224,28 @@ const styles = {
     padding: "40px",
     minHeight: "100vh",
     background: "linear-gradient(135deg, #f8f9fa, #eef2f7)",
+  },
+
+  dashboardGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+    gap: "20px",
+    marginBottom: "40px",
+  },
+
+  metricCard: {
+    background: "#fff",
+    padding: "20px",
+    borderRadius: "12px",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+    textAlign: "center" as const,
+  },
+
+  metricValue: {
+    fontSize: "32px",
+    fontWeight: "bold",
+    color: "#2c3e50",
+    margin: "10px 0 0",
   },
 
   heading: {

@@ -22,6 +22,7 @@ router.get("/", async (req, res) => {
     const productsWithStock = products.map((p) => ({
       ...p,
       stockStatus: getStockStatus(p.quantity || 0),
+      lowStock: (p.quantity || 0) <= 2,
     }));
     res.json(productsWithStock);
   } catch (err) {

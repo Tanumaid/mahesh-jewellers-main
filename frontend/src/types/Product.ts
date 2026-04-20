@@ -11,4 +11,6 @@ export interface Product {
   subcategory?: string;
   quantity?: number;
   stockStatus?: string;
+  soldCount?: number;
+  lowStock?: boolean;
 }

@@ -11,7 +11,8 @@ gst:String,
 image:String,
 category:String,
 subcategory:String,
-quantity: { type: Number, default: 0 }
+quantity: { type: Number, default: 0 },
+soldCount: { type: Number, default: 0 }
 
 });
 

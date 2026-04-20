@@ -84,17 +84,28 @@ const ProductCard = ({ product }: any) => {
       {/* 🔥 Dynamic Price */}
       <p style={styles.price}>₹{calculatePrice()}</p>
 
-      {/* Stock Status */}
-      {product.stockStatus && (
-        <p style={{ 
-          fontWeight: "bold", 
-          marginTop: "5px", 
-          color: product.stockStatus === "In Stock" ? "#27ae60" : 
-                 product.stockStatus === "Out of Stock" ? "#e74c3c" : "#e67e22" 
-        }}>
-          {product.stockStatus}
-        </p>
-      )}
+      {/* Stock Badges */}
+      <div style={{ marginTop: "10px", display: "flex", justifyContent: "center", gap: "8px", flexWrap: "wrap" }}>
+        {product.stockStatus && (
+          <span style={{ 
+            padding: "4px 8px", 
+            borderRadius: "12px", 
+            fontSize: "12px", 
+            fontWeight: "bold",
+            color: "#fff",
+            backgroundColor: product.stockStatus === "In Stock" ? "#27ae60" : 
+                             product.stockStatus === "Out of Stock" ? "#e74c3c" : "#e67e22" 
+          }}>
+            {product.stockStatus}
+          </span>
+        )}
+
+        {product.soldCount >= 5 && (
+          <span style={{ padding: "4px 8px", borderRadius: "12px", fontSize: "12px", fontWeight: "bold", backgroundColor: "#ffeb3b", color: "#d35400" }}>
+            🔥 Trending
+          </span>
+        )}
+      </div>
 
       <button 
         style={{

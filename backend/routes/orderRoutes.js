@@ -11,19 +11,22 @@ const generateOrderId = () => {
 // ✅ PLACE ORDER
 router.post("/", async (req, res) => {
   try {
-    const { productName, price, image, userEmail, userName, weight } = req.body;
+    const { productName, price, image, userEmail, userName, weight, quantity } = req.body;
 
     if (!productName || !price || !userEmail) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
+    const orderQuantity = quantity ? Number(quantity) : 1;
+
     // Verify stock and decrement
     const product = await Product.findOne({ name: productName });
     if (product) {
-      if (product.quantity <= 0) {
-        return res.status(400).json({ message: "Product is out of stock" });
+      if (product.quantity < orderQuantity) {
+        return res.status(400).json({ message: `Only ${product.quantity} items left in stock` });
       }
-      product.quantity -= 1;
+      product.quantity -= orderQuantity;
+      product.soldCount = (product.soldCount || 0) + orderQuantity;
       await product.save();
     }
 
