@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Product = require("../models/product");
+const purityConfig = require("../data/purity");
 
 const getStockStatus = (quantity) => {
   if (quantity > 2) return "In Stock";
@@ -40,6 +41,10 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
+    if (purityConfig[category] && !purityConfig[category].includes(purity)) {
+      return res.status(400).json({ message: "Invalid purity for the selected category" });
+    }
+
     const product = new Product({
       name,
       price,
@@ -68,6 +73,11 @@ router.post("/", async (req, res) => {
 // UPDATE PRODUCT
 router.put("/:id", async (req, res) => {
   try {
+    const { category, purity } = req.body;
+    if (category && purity && purityConfig[category] && !purityConfig[category].includes(purity)) {
+      return res.status(400).json({ message: "Invalid purity for the selected category" });
+    }
+
     const updated = await Product.findByIdAndUpdate(
       req.params.id,
       req.body,

@@ -17,6 +17,7 @@ const Admin = () => {
   });
 
   const [categoriesData, setCategoriesData] = useState<Record<string, string[]>>({});
+  const [purityData, setPurityData] = useState<Record<string, string[]>>({});
 
   const [products, setProducts] = useState<any[]>([]);
   const [editId, setEditId] = useState<string | null>(null);
@@ -32,6 +33,9 @@ const Admin = () => {
     axios.get("http://localhost:5000/api/categories")
       .then(res => setCategoriesData(res.data || {}))
       .catch(() => setCategoriesData({}));
+    axios.get("http://localhost:5000/api/purity")
+      .then(res => setPurityData(res.data || {}))
+      .catch(() => setPurityData({}));
   }, []);
 
   const handleChange = (e: any) => {
@@ -135,19 +139,19 @@ const Admin = () => {
 
           <input name="weight" value={form.weight} onChange={handleChange} placeholder="Weight (grams)" style={styles.input} />
 
-          {/* ✅ PURITY DROPDOWN */}
-          <select name="purity" value={form.purity} onChange={handleChange} style={styles.input}>
-            <option value="">Select Purity</option>
-            <option value="24K">24K</option>
-            <option value="22K">22K</option>
-            <option value="18K">18K</option>
-          </select>
-
           {/* ✅ CATEGORY DROPDOWN */}
-          <select name="category" value={form.category} onChange={(e) => setForm({...form, category: e.target.value, subcategory: ""})} style={styles.input}>
+          <select name="category" value={form.category} onChange={(e) => setForm({...form, category: e.target.value, subcategory: "", purity: ""})} style={styles.input}>
             <option value="">Select Category</option>
             {Object.keys(categoriesData).map((cat) => (
               <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+
+          {/* ✅ PURITY DROPDOWN */}
+          <select name="purity" value={form.purity} onChange={handleChange} style={styles.input} disabled={!form.category}>
+            <option value="">Select Purity</option>
+            {form.category && purityData[form.category]?.map((p) => (
+              <option key={p} value={p}>{p}</option>
             ))}
           </select>
 

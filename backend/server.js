@@ -21,6 +21,7 @@ const orderRoutes = require("./routes/orderRoutes");
 const wishlistRoutes = require("./routes/wishlistRoutes");
 const goldRateRoutes = require("./routes/goldRateRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
+const purityRoutes = require("./routes/purityRoutes");
 
 
 
@@ -34,6 +35,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/goldrate", goldRateRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/api/purity", purityRoutes);
 
 // Test route
 app.get("/", (req, res) => {
