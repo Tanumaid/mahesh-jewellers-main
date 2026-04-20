@@ -3,11 +3,21 @@ import axios from "axios";
 import { CartContext } from "../context/CartContext";
 import { useNavigate } from "react-router-dom";
 import type { Product } from "../types/Product";
+import CategoryFilter from "../components/CategoryFilter";
+import SubcategoryFilter from "../components/SubcategoryFilter";
+
+const categoriesData: Record<string, string[]> = {
+  "Gold": ["Ring", "Bangles", "Mangalsutra", "Chain", "Necklace"],
+  "Silver": ["Anklet", "Jodvi", "Chain", "Ring"],
+  "Temple Jewellery": ["Necklace", "Earrings", "Sets"]
+};
 
 const Products = () => {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedSubcategory, setSelectedSubcategory] = useState("");
   const [goldRates, setGoldRates] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -17,8 +27,18 @@ const Products = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
-        const productRes = await axios.get("http://localhost:5000/api/products");
+        let url = "http://localhost:5000/api/products";
+        const params = new URLSearchParams();
+        if (selectedCategory !== "All") params.append("category", selectedCategory);
+        if (selectedSubcategory) params.append("subcategory", selectedSubcategory);
+        
+        if (params.toString()) {
+          url += `?${params.toString()}`;
+        }
+
+        const productRes = await axios.get(url);
         const goldRes = await axios.get("http://localhost:5000/api/goldrate");
 
         setProducts(productRes.data || []);
@@ -31,7 +51,12 @@ const Products = () => {
     };
 
     fetchData();
-  }, []);
+  }, [selectedCategory, selectedSubcategory]);
+
+  const handleCategorySelect = (category: string) => {
+    setSelectedCategory(category);
+    setSelectedSubcategory(""); // Reset subcategory when category changes
+  };
 
   const calculatePrice = (product: Product) => {
     const weight = parseFloat(product.weight || "0");
@@ -66,6 +91,24 @@ const Products = () => {
         onChange={(e) => setSearch(e.target.value)}
         style={styles.search}
       />
+
+      <CategoryFilter
+        categories={["All", ...Object.keys(categoriesData)]}
+        selectedCategory={selectedCategory}
+        onSelectCategory={handleCategorySelect}
+      />
+
+      {selectedCategory !== "All" && (
+        <SubcategoryFilter
+          subcategories={categoriesData[selectedCategory] || []}
+          selectedSubcategory={selectedSubcategory}
+          onSelectSubcategory={setSelectedSubcategory}
+        />
+      )}
+
+      {filteredProducts.length === 0 && !loading && (
+        <h3 style={{ color: "#777", marginTop: "20px" }}>No Products Found</h3>
+      )}
 
       <div style={styles.grid}>
         {filteredProducts.map((product) => (

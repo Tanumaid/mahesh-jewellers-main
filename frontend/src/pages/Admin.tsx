@@ -11,7 +11,15 @@ const Admin = () => {
     makingCharges: "",
     gst: "",
     image: "",
+    category: "",
+    subcategory: "",
   });
+
+  const categoriesData: Record<string, string[]> = {
+    "Gold": ["Ring", "Bangles", "Mangalsutra", "Chain", "Necklace"],
+    "Silver": ["Anklet", "Jodvi", "Chain", "Ring"],
+    "Temple Jewellery": ["Necklace", "Earrings", "Sets"]
+  };
 
   const [products, setProducts] = useState<any[]>([]);
   const [editId, setEditId] = useState<string | null>(null);
@@ -36,8 +44,8 @@ const Admin = () => {
   const handleSubmit = async () => {
 
     // ✅ VALIDATION
-    if (!form.name || !form.weight || !form.purity || !form.makingCharges || !form.gst) {
-      alert("Please fill all required fields");
+    if (!form.name || !form.weight || !form.purity || !form.makingCharges || !form.gst || !form.category || !form.subcategory) {
+      alert("Please fill all required fields, including category and subcategory.");
       return;
     }
 
@@ -61,6 +69,8 @@ const Admin = () => {
         makingCharges: "",
         gst: "",
         image: "",
+        category: "",
+        subcategory: "",
       });
 
     } catch {
@@ -112,6 +122,22 @@ const Admin = () => {
             <option value="18K">18K</option>
           </select>
 
+          {/* ✅ CATEGORY DROPDOWN */}
+          <select name="category" value={form.category} onChange={(e) => setForm({...form, category: e.target.value, subcategory: ""})} style={styles.input}>
+            <option value="">Select Category</option>
+            {Object.keys(categoriesData).map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+
+          {/* ✅ SUBCATEGORY DROPDOWN */}
+          <select name="subcategory" value={form.subcategory} onChange={handleChange} style={styles.input} disabled={!form.category}>
+            <option value="">Select Subcategory</option>
+            {form.category && categoriesData[form.category]?.map((sub) => (
+              <option key={sub} value={sub}>{sub}</option>
+            ))}
+          </select>
+          
           <input name="makingCharges" value={form.makingCharges} onChange={handleChange} placeholder="Making Charges ₹" style={styles.input} />
 
           <input name="gst" value={form.gst} onChange={handleChange} placeholder="GST %" style={styles.input} />
@@ -140,6 +166,7 @@ const Admin = () => {
 
             <h4>{p.name}</h4>
             <p style={styles.meta}>{p.weight} g | {p.purity}</p>
+            <p style={styles.meta}>{p.category} - {p.subcategory}</p>
 
             <button style={styles.editBtn} onClick={() => handleEdit(p)}>
               Edit

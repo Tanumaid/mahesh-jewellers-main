@@ -8,7 +8,9 @@ weight:String,
 purity:String,
 makingCharges:String,
 gst:String,
-image:String
+image:String,
+category:String,
+subcategory:String
 
 });
 

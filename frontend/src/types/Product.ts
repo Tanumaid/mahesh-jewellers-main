@@ -7,4 +7,6 @@ export interface Product {
   purity?: string;
   makingCharges?: string;
   gst?: string;
+  category?: string;
+  subcategory?: string;
 }

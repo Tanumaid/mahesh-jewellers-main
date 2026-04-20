@@ -3,10 +3,16 @@ const router = express.Router();
 const Product = require("../models/product");
 
 
-// ✅ GET ALL PRODUCTS
+// ✅ GET ALL PRODUCTS (With Filtering)
 router.get("/", async (req, res) => {
   try {
-    const products = await Product.find(); // ✅ CORRECT
+    const { category, subcategory } = req.query;
+    let query = {};
+    
+    if (category) query.category = category;
+    if (subcategory) query.subcategory = subcategory;
+
+    const products = await Product.find(query);
     res.json(products);
   } catch (err) {
     res.status(500).json({ message: "Error fetching products" });
@@ -17,9 +23,9 @@ router.get("/", async (req, res) => {
 // ✅ ADD PRODUCT (ADMIN)
 router.post("/", async (req, res) => {
   try {
-    const { name, price, weight, purity, makingCharges, gst, image } = req.body;
+    const { name, price, weight, purity, makingCharges, gst, image, category, subcategory } = req.body;
 
-    if (!name || !weight || !purity || !makingCharges || !gst) {
+    if (!name || !weight || !purity || !makingCharges || !gst || !category || !subcategory) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -31,6 +37,8 @@ router.post("/", async (req, res) => {
       makingCharges,
       gst,
       image,
+      category,
+      subcategory,
     });
 
     await product.save();
