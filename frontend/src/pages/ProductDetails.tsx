@@ -10,13 +10,12 @@ const ProductDetails = () => {
   const { addToCart } = useContext(CartContext)!;
 
   const [product, setProduct] = useState<Product | null>(null);
-  const [goldRate, setGoldRate] = useState<number>(0);
+  const [goldRates, setGoldRates] = useState<any>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     window.scrollTo(0, 0);
 
-    // 🔥 Fetch product
     axios.get("http://localhost:5000/api/products")
       .then((res) => {
         const foundProduct = res.data.find((p: Product) => p._id === id);
@@ -25,32 +24,41 @@ const ProductDetails = () => {
       })
       .catch(() => setLoading(false));
 
-    // 🔥 Fetch gold rate
     axios.get("http://localhost:5000/api/goldrate")
       .then((res) => {
-        setGoldRate(res.data?.ratePerGram || 0);
+        setGoldRates(res.data?.rates || {});
       })
-      .catch(() => setGoldRate(0));
+      .catch(() => setGoldRates({}));
 
   }, [id]);
 
-  // 🔥 Price calculation
- const calculatePrice = () => {
-  if (!product) return "0";
-  if (!goldRate) return product.price || "0";  // ✅ FIX
+  // ✅ UPDATED PRICE FUNCTION (returns full breakdown)
+  const calculatePrice = () => {
+    if (!product) return null;
 
-  const weight = parseFloat(product.weight || "0");
-  const making = parseFloat(product.makingCharges || "0");
-  const gst = parseFloat(product.gst || "0");
+    const weight = parseFloat(product.weight || "0");
+    const making = parseFloat(product.makingCharges || "0");
+    const purity = product.purity || "22K";
 
-  const base = weight * goldRate;
-  const total = base + making;
-  const final = total + (total * gst / 100);
+    const rate = goldRates[purity] || 0;
 
-  return final.toFixed(2);
-};
+    const goldPrice = weight * rate;
+    const goldGST = goldPrice * 0.03;
+    const makingGST = making * 0.05;
 
-  // 🔥 Loading state
+    const final = goldPrice + making + goldGST + makingGST;
+
+    return {
+      goldPrice,
+      making,
+      goldGST,
+      makingGST,
+      final
+    };
+  };
+
+  const priceData = calculatePrice();
+
   if (loading) {
     return <h2 style={{ padding: "40px" }}>Loading...</h2>;
   }
@@ -59,19 +67,19 @@ const ProductDetails = () => {
     return <h2 style={{ padding: "40px" }}>Product not found</h2>;
   }
 
-  // 🔥 Add to cart
+  // 🛒 Add to cart
   const handleAddToCart = () => {
-  addToCart({
-    id: product._id,
-    name: product.name,
-    price: calculatePrice(),
-    image: product.image,
-    quantity: 1,
-    weight: product.weight || "0", // ⭐ FIX
-  });
+    addToCart({
+      id: product._id,
+      name: product.name,
+      price: priceData?.final.toFixed(2),
+      image: product.image,
+      quantity: 1,
+      weight: product.weight || "0",
+    });
 
-  alert("Added to Cart ✅");
-};
+    alert("Added to Cart ✅");
+  };
 
   return (
     <div style={styles.container}>
@@ -86,12 +94,19 @@ const ProductDetails = () => {
         <p><strong>Weight:</strong> {product.weight} grams</p>
         <p><strong>Purity:</strong> {product.purity}</p>
         <p><strong>Making Charges:</strong> ₹{product.makingCharges}</p>
-        <p><strong>GST:</strong> {product.gst}%</p>
 
-        {/* 🔥 Dynamic Price */}
+        {/* 💰 FINAL PRICE */}
         <h3 style={styles.price}>
-          Price: ₹{calculatePrice()}
+          Price: ₹{priceData?.final.toFixed(2)}
         </h3>
+
+        {/* 🔥 PRICE BREAKDOWN (NEW FEATURE) */}
+        <div style={styles.breakdown}>
+          <p>Gold Price: ₹{priceData?.goldPrice.toFixed(2)}</p>
+          <p>Making: ₹{priceData?.making}</p>
+          <p>GST (3% Gold): ₹{priceData?.goldGST.toFixed(2)}</p>
+          <p>GST (5% Making): ₹{priceData?.makingGST.toFixed(2)}</p>
+        </div>
 
         <button style={styles.btn} onClick={handleAddToCart}>
           Add To Cart
@@ -130,6 +145,15 @@ const styles = {
     marginTop: "10px",
     fontSize: "24px",
     fontWeight: "bold",
+  },
+
+  breakdown: {
+    marginTop: "10px",
+    fontSize: "14px",
+    color: "#555",
+    background: "#fafafa",
+    padding: "10px",
+    borderRadius: "8px",
   },
 
   btn: {

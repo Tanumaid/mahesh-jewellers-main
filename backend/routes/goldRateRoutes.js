@@ -2,28 +2,27 @@ const express = require("express");
 const router = express.Router();
 const GoldRate = require("../models/goldRate");
 
-// Get gold rate
+// GET rates
 router.get("/", async (req, res) => {
   const rate = await GoldRate.findOne();
-  console.log("Gold Rate:", rate);
   res.json(rate);
 });
 
-// Update gold rate
-router.post("/", async (req, res) => {
-  const { ratePerGram } = req.body;
+// UPDATE rates (single document)
+router.put("/", async (req, res) => {
+  const { rates } = req.body;
 
-  let rate = await GoldRate.findOne();
+  let existing = await GoldRate.findOne();
 
-  if (rate) {
-    rate.ratePerGram = ratePerGram;
-    await rate.save();
+  if (existing) {
+    existing.rates = rates;
+    await existing.save();
   } else {
-    rate = new GoldRate({ ratePerGram });
-    await rate.save();
+    existing = new GoldRate({ rates });
+    await existing.save();
   }
 
-  res.json(rate);
+  res.json(existing);
 });
 
 module.exports = router;

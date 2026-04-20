@@ -6,15 +6,13 @@ import logo from "../assets/logo.png";
 
 const Navbar = () => {
 
-  const { cart } = useContext(CartContext)!;
+  const { cart, user, updateUser } = useContext(CartContext)!; // ✅ FIX
   const navigate = useNavigate();
 
-  const user = JSON.parse(localStorage.getItem("user") || "null");
-
-  // 🔥 Logout
+  // 🔥 Logout (NO RELOAD)
   const handleLogout = () => {
-    localStorage.removeItem("user");
-    window.location.reload(); // ✅ FIXED
+    updateUser(null); // ✅ this updates UI instantly
+    navigate("/");
   };
 
   return (
@@ -38,20 +36,19 @@ const Navbar = () => {
           </Link>
         </li>
 
-        {/* 🔥 Show only if logged in */}
-        {user && (
+        {/* 🔥 If logged in */}
+        {user ? (
           <>
             <li><Link to="/orders">My Orders</Link></li>
             <li><Link to="/offers">Offers</Link></li>
 
-            {/* 🔥 Admin only (UPDATED) */}
+            {/* 🔥 Admin */}
             {user?.isAdmin && (
               <li>
-                <Link to="/admin" onClick={() => console.log("Admin Clicked")}>
-                  Admin
-                </Link>
+                <Link to="/admin">Admin</Link>
               </li>
             )}
+
             <li style={styles.userName}>👤 {user.name}</li>
 
             <li>
@@ -60,17 +57,11 @@ const Navbar = () => {
               </button>
             </li>
           </>
-        )}
-
-        {/* 🔥 If NOT logged in */}
-        {!user && (
+        ) : (
           <>
-            {!user && (
-              <>
-                <li><Link to="/register">Register</Link></li>
-                <li><Link to="/login">Login</Link></li>
-              </>
-            )}
+            <li>
+              <Link to="/login">Login</Link>
+            </li>
           </>
         )}
 

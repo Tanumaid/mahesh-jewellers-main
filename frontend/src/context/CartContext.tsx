@@ -11,6 +11,8 @@ interface CartItem {
 
 interface CartContextType {
   cart: CartItem[];
+  user: any; // 🔥 ADD
+  updateUser: (user: any) => void; // 🔥 ADD
   addToCart: (product: CartItem) => void;
   removeFromCart: (id: string) => void;
   clearCart: () => void;
@@ -20,19 +22,23 @@ export const CartContext = createContext<CartContextType | undefined>(undefined)
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
 
-  // 🔥 USER STATE (IMPORTANT)
+  // 🔥 USER STATE
   const [user, setUser] = useState(() =>
     JSON.parse(localStorage.getItem("user") || "null")
   );
 
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  // 🔄 WATCH USER CHANGE (LOGIN / LOGOUT)
- // 🔥 RELOAD USER WHEN COMPONENT RE-RENDERS
-useEffect(() => {
-  const updatedUser = JSON.parse(localStorage.getItem("user") || "null");
-  setUser(updatedUser);
-}, []);
+  // ✅ UPDATE USER (IMPORTANT FIX)
+  const updateUser = (newUser: any) => {
+    if (newUser) {
+      localStorage.setItem("user", JSON.stringify(newUser));
+    } else {
+      localStorage.removeItem("user");
+    }
+
+    setUser(newUser);
+  };
 
   // 🔥 LOAD CART WHEN USER CHANGES
   useEffect(() => {
@@ -40,7 +46,6 @@ useEffect(() => {
 
     const savedCart = localStorage.getItem(key);
     setCart(savedCart ? JSON.parse(savedCart) : []);
-
   }, [user]);
 
   // 🔥 SAVE CART
@@ -79,7 +84,16 @@ useEffect(() => {
   };
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart }}>
+    <CartContext.Provider
+      value={{
+        cart,
+        user,           // ✅ EXPOSE
+        updateUser,     // ✅ EXPOSE
+        addToCart,
+        removeFromCart,
+        clearCart
+      }}
+    >
       {children}
     </CartContext.Provider>
   );

@@ -10,17 +10,18 @@ const Home = () => {
 
   const { addToCart } = useContext(CartContext)!;
 
-  const [goldRate, setGoldRate] = useState<number>(0);
+  // ✅ MULTI CARAT RATES
+  const [goldRates, setGoldRates] = useState<any>({});
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
 
   useEffect(() => {
-    // 🔥 Fetch gold rate
+    // 🔥 Fetch gold rates
     axios.get("http://localhost:5000/api/goldrate")
       .then((res) => {
-        setGoldRate(res.data?.ratePerGram || 0);
+        setGoldRates(res.data?.rates || {});
       })
-      .catch(() => setGoldRate(0));
+      .catch(() => setGoldRates({}));
 
     // 🔥 Fetch products
     axios.get("http://localhost:5000/api/products")
@@ -32,22 +33,20 @@ const Home = () => {
 
   }, []);
 
-  const goldPerTola = goldRate * 10;
-
   const handleLogout = () => {
     localStorage.removeItem("user");
     navigate("/");
   };
 
-  // 🔥 Price calculation
+  // ✅ CARAT-WISE PRICE CALCULATION
   const calculatePrice = (product: Product) => {
-    if (!goldRate) return product.price || "0";
-
     const weight = parseFloat(product.weight || "0");
     const making = parseFloat(product.makingCharges || "0");
     const gst = parseFloat(product.gst || "0");
 
-    const base = weight * goldRate;
+    const rate = goldRates[product.purity || ""] || 0;
+
+    const base = weight * rate;
     const total = base + making;
     const final = total + (total * gst / 100);
 
@@ -61,22 +60,26 @@ const Home = () => {
 
       {user && <h3>Hello, {user.name}</h3>}
 
-      {/* 🔥 GOLD RATE */}
+      {/* ✅ GOLD RATES DISPLAY */}
       <div style={styles.goldBox}>
-        <h3>Today's Gold Rate</h3>
+        <h3>Today's Gold Rates</h3>
 
-        {goldRate ? (
+        {goldRates["24K"] ? (
           <>
             <p style={styles.rateText}>
-              ₹ <span style={styles.highlight}>{goldRate}</span> / gram
+              24K: ₹ <span style={styles.highlight}>{goldRates["24K"]}</span> / g
             </p>
 
             <p style={styles.rateText}>
-              ₹ <span style={styles.highlight}>{goldPerTola}</span> / tola (10g)
+              22K: ₹ <span style={styles.highlight}>{goldRates["22K"]}</span> / g
+            </p>
+
+            <p style={styles.rateText}>
+              18K: ₹ <span style={styles.highlight}>{goldRates["18K"]}</span> / g
             </p>
           </>
         ) : (
-          <p>Loading gold rate...</p>
+          <p>Loading gold rates...</p>
         )}
       </div>
 
@@ -109,6 +112,7 @@ const Home = () => {
 
               <h3>{product.name}</h3>
 
+              {/* ✅ DYNAMIC PRICE */}
               <p style={styles.price}>₹{calculatePrice(product)}</p>
 
               <button
@@ -120,7 +124,7 @@ const Home = () => {
                     price: calculatePrice(product),
                     image: product.image,
                     quantity: 1,
-                    weight: product.weight || "0", // ⭐ FIX
+                    weight: product.weight || "0",
                   });
                   alert("Added to Cart ✅");
                 }}

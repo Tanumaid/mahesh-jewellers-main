@@ -2,37 +2,67 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 
 const Analytics = () => {
-  const [data, setData] = useState<any>({});
+  const [data, setData] = useState<any>({
+    customerOfYear: null,
+    victoryCustomer: null,
+  });
+
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/orders/analytics/top-customers")
-      .then((res) => setData(res.data));
+    const fetchAnalytics = async () => {
+      try {
+        const res = await axios.get(
+          "http://localhost:5000/api/orders/users-with-orders"
+        );
+
+        // 🔥 SORT USERS BY TOTAL GOLD
+        const sorted = (res.data || []).sort(
+          (a: any, b: any) => b.totalGold - a.totalGold
+        );
+
+        setData({
+          customerOfYear: sorted[0] || null,
+          victoryCustomer: sorted[1] || null,
+        });
+
+      } catch (err) {
+        console.log("Error fetching analytics");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalytics();
   }, []);
 
   return (
     <div style={styles.container}>
       <h1 style={styles.heading}>📊 Analytics</h1>
 
-      <div style={styles.grid}>
+      {loading ? (
+        <p style={{ textAlign: "center" }}>Loading...</p>
+      ) : (
+        <div style={styles.grid}>
 
-        <div style={styles.card}>
-          <h3>🏆 Customer of the Year</h3>
-          <p style={styles.name}>
-            {data.customerOfYear?.name || "No data"}
-          </p>
-          <p>{data.customerOfYear?.totalGold || 0} g</p>
+          <div style={styles.card}>
+            <h3>🏆 Customer of the Year</h3>
+            <p style={styles.name}>
+              {data.customerOfYear?.name || data.customerOfYear?.email || "No data"}
+            </p>
+            <p>{data.customerOfYear?.totalGold || 0} g</p>
+          </div>
+
+          <div style={styles.card}>
+            <h3>👑 Victory Customer</h3>
+            <p style={styles.name}>
+              {data.victoryCustomer?.name || data.victoryCustomer?.email || "No data"}
+            </p>
+            <p>{data.victoryCustomer?.totalGold || 0} g</p>
+          </div>
+
         </div>
-
-        <div style={styles.card}>
-          <h3>👑 Victory Customer</h3>
-          <p style={styles.name}>
-            {data.victoryCustomer?.name || "No data"}
-          </p>
-          <p>{data.victoryCustomer?.totalGold || 0} g</p>
-        </div>
-
-      </div>
+      )}
     </div>
   );
 };

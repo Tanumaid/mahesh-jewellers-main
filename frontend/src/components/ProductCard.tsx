@@ -6,26 +6,32 @@ const ProductCard = ({ product }: any) => {
 
   const { addToCart } = useContext(CartContext)!;
 
-  const [goldRate, setGoldRate] = useState<number>(0);
+  // 🔥 CHANGE THIS
+  const [goldRates, setGoldRates] = useState<any>({});
 
-  // 🔥 Fetch gold rate
   useEffect(() => {
     axios.get("http://localhost:5000/api/goldrate")
       .then((res) => {
-        setGoldRate(res.data?.ratePerGram || 0);
+        setGoldRates(res.data?.rates || {});
       })
-      .catch(() => setGoldRate(0));
+      .catch(() => setGoldRates({}));
   }, []);
 
-  // 🔥 Calculate dynamic price
+  // 🔥 FIXED PRICE CALCULATION
   const calculatePrice = () => {
     const weight = parseFloat(product.weight) || 0;
     const making = parseFloat(product.makingCharges) || 0;
-    const gst = parseFloat(product.gst) || 0;
+    const purity = product.purity || "22K";
 
-    const base = weight * goldRate;
-    const total = base + making;
-    const final = total + (total * gst / 100);
+    const rate = goldRates[purity] || 0;
+
+    const goldPrice = weight * rate;
+
+    // ✅ Correct GST split
+    const goldGST = goldPrice * 0.03;
+    const makingGST = making * 0.05;
+
+    const final = goldPrice + making + goldGST + makingGST;
 
     return final.toFixed(2);
   };

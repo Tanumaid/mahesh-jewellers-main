@@ -7,7 +7,6 @@ const orderSchema = new mongoose.Schema({
     trim: true,
   },
 
-  // ✅ FIX: Store price as Number (VERY IMPORTANT)
   price: {
     type: Number,
     required: true,
@@ -22,15 +21,14 @@ const orderSchema = new mongoose.Schema({
     type: String,
     required: true,
     lowercase: true,
-    index: true, // ✅ faster queries
+    index: true,
   },
 
   userName: {
-  type: String,
-  required: true,
-},
+    type: String,
+    required: true,
+  },
 
-  // ✅ FIX: Store weight as Number (grams)
   weight: {
     type: Number,
     required: true,
@@ -40,15 +38,10 @@ const orderSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-  },
-
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
+  }
 
 }, {
-  timestamps: true // ✅ adds createdAt & updatedAt automatically
+  timestamps: true // ✅ THIS is enough
 });
 
 

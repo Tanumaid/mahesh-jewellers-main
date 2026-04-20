@@ -8,7 +8,7 @@ const Products = () => {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
-  const [goldRate, setGoldRate] = useState<number>(0);
+  const [goldRates, setGoldRates] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -22,7 +22,7 @@ const Products = () => {
         const goldRes = await axios.get("http://localhost:5000/api/goldrate");
 
         setProducts(productRes.data || []);
-        setGoldRate(goldRes.data?.ratePerGram || 0);
+        setGoldRates(goldRes.data?.rates || {});
       } catch {
         setError("Failed to load data");
       } finally {
@@ -34,17 +34,18 @@ const Products = () => {
   }, []);
 
   const calculatePrice = (product: Product) => {
-    if (!goldRate) return product.price || "0";
-
     const weight = parseFloat(product.weight || "0");
     const making = parseFloat(product.makingCharges || "0");
-    const gst = parseFloat(product.gst || "0");
+    const purity = product.purity || "22K";
 
-    const base = weight * goldRate;
-    const total = base + making;
-    const final = total + (total * gst / 100);
+    const rate = goldRates[purity] || 0;
 
-    return final.toFixed(2);
+    const goldPrice = weight * rate;
+
+    const goldGST = goldPrice * 0.03;
+    const makingGST = making * 0.05;
+
+    return (goldPrice + making + goldGST + makingGST).toFixed(2);
   };
 
   const filteredProducts = products.filter((product) =>

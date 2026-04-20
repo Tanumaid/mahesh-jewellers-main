@@ -1,9 +1,10 @@
 const mongoose = require("mongoose");
 
 const goldRateSchema = new mongoose.Schema({
-  ratePerGram: {
-    type: Number,
-    required: true,
+  rates: {
+    "24K": { type: Number, required: true },
+    "22K": { type: Number, required: true },
+    "18K": { type: Number, required: true },
   },
 });
 

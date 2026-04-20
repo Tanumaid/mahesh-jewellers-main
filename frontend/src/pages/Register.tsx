@@ -14,55 +14,17 @@ const Register = () => {
     mobile: "",
   });
 
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const handleChange = (e: any) => {
     setUser({ ...user, [e.target.name]: e.target.value });
+    setError(""); // clear error while typing
   };
 
-  const handleRegister = async (e: any) => {
-    e.preventDefault();
+  const validate = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    // 🔥 ADMIN LOGIN
-    if (user.email === "admin@gmail.com" && user.password === "admin123") {
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          name: "Admin",
-          email: "admin@gmail.com",
-          isAdmin: true,
-        })
-      );
-
-      alert("Admin Login Successful");
-      navigate("/admin");
-      return;
-    }
-
-    // 🔥 USER LOGIN (if already registered)
-    try {
-      const res = await axios.post(
-        "http://localhost:5000/api/users/login",
-        {
-          email: user.email,
-          password: user.password,
-        }
-      );
-
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          ...res.data,
-          isAdmin: false,
-        })
-      );
-
-      alert("Login Successful");
-      navigate("/");
-      return;
-    } catch {
-      // ❌ login failed → continue to register
-    }
-
-    // ✔ VALIDATION (only for new users)
     if (
       !user.name ||
       !user.email ||
@@ -71,102 +33,87 @@ const Register = () => {
       !user.aadhaar ||
       !user.mobile
     ) {
-      alert("Please fill all fields");
-      return;
+      return "Please fill all fields";
+    }
+
+    if (!emailRegex.test(user.email)) {
+      return "Invalid email format";
+    }
+
+    if (user.password.length < 6) {
+      return "Password must be at least 6 characters";
     }
 
     if (user.aadhaar.length !== 12) {
-      alert("Aadhaar must be 12 digits");
-      return;
+      return "Aadhaar must be 12 digits";
     }
 
     if (user.mobile.length !== 10) {
-      alert("Mobile must be 10 digits");
+      return "Mobile must be 10 digits";
+    }
+
+    return "";
+  };
+
+  const handleRegister = async (e: any) => {
+    e.preventDefault();
+
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
     try {
-      // 🔥 REGISTER USER
+      setLoading(true);
+
       await axios.post("http://localhost:5000/api/users/register", user);
 
-      // 🔥 AUTO LOGIN AFTER REGISTER
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          name: user.name,
-          email: user.email,
-          isAdmin: false,
-        })
-      );
+      alert("Registration Successful ✅");
 
-      alert("Registration Successful");
-      window.location.reload();
-    } catch (error) {
-      alert("Error registering user");
+      navigate("/login");
+
+    } catch (error: any) {
+      setError(error.response?.data?.message || "Registration failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div style={styles.container}>
-      <h2>User Registration / Login</h2>
+      <h2>User Registration</h2>
 
       <form onSubmit={handleRegister} style={styles.form}>
-        <input
-          name="name"
-          placeholder="Full Name"
-          value={user.name}
-          onChange={handleChange}
-          style={styles.input}
-        />
 
-        <input
-          name="email"
-          placeholder="Email"
-          value={user.email}
-          onChange={handleChange}
-          style={styles.input}
-        />
+        {error && <p style={styles.error}>{error}</p>}
 
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={user.password}
-          onChange={handleChange}
-          style={styles.input}
-        />
+        <input name="name" placeholder="Full Name" value={user.name} onChange={handleChange} style={styles.input} />
 
-        <input
-          name="address"
-          placeholder="Address"
-          value={user.address}
-          onChange={handleChange}
-          style={styles.input}
-        />
+        <input name="email" placeholder="Email" value={user.email} onChange={handleChange} style={styles.input} />
 
-        <input
-          name="aadhaar"
-          placeholder="Aadhaar Number"
-          value={user.aadhaar}
-          onChange={handleChange}
-          style={styles.input}
-        />
+        <input type="password" name="password" placeholder="Password" value={user.password} onChange={handleChange} style={styles.input} />
 
-        <input
-          name="mobile"
-          placeholder="Mobile Number"
-          value={user.mobile}
-          onChange={handleChange}
-          style={styles.input}
-        />
+        <input name="address" placeholder="Address" value={user.address} onChange={handleChange} style={styles.input} />
 
-        <button type="submit" style={styles.btn}>
-          Continue
+        <input name="aadhaar" placeholder="Aadhaar Number" value={user.aadhaar} onChange={handleChange} style={styles.input} />
+
+        <input name="mobile" placeholder="Mobile Number" value={user.mobile} onChange={handleChange} style={styles.input} />
+
+        <button type="submit" style={styles.btn} disabled={loading}>
+          {loading ? "Registering..." : "Register"}
         </button>
+
       </form>
 
-      <p style={{ marginTop: "10px", color: "gray" }}>
-        Use same form for Login / Register
+      <p style={{ marginTop: "10px" }}>
+        Already have an account?
+        <span
+          style={{ color: "blue", cursor: "pointer" }}
+          onClick={() => navigate("/login")}
+        >
+          Login
+        </span>
       </p>
     </div>
   );
@@ -184,7 +131,7 @@ const styles = {
     display: "flex",
     flexDirection: "column" as const,
     width: "300px",
-    gap: "15px",
+    gap: "12px",
     marginTop: "20px",
   },
 
@@ -197,11 +144,15 @@ const styles = {
   btn: {
     padding: "10px",
     backgroundColor: "#D4AF37",
-    color: "#000",
     border: "none",
     cursor: "pointer",
     fontWeight: "bold",
-    borderRadius: "5px",
+  },
+
+  error: {
+    color: "red",
+    fontSize: "14px",
+    textAlign: "center" as const,
   },
 };
 

@@ -10,9 +10,18 @@ const Offers = () => {
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-    // 🔥 Fetch analytics
-    axios.get("http://localhost:5000/api/orders/analytics/top-customers")
-      .then((res) => setAnalytics(res.data))
+    // 🔥 FIXED ANALYTICS LOGIC
+    axios.get("http://localhost:5000/api/orders/users-with-orders")
+      .then((res) => {
+        const sorted = (res.data || []).sort(
+          (a: any, b: any) => b.totalGold - a.totalGold
+        );
+
+        setAnalytics({
+          customerOfYear: sorted[0] || null,
+          victoryCustomer: sorted[1] || null,
+        });
+      })
       .catch(() => console.log("Error loading analytics"));
 
     if (user.email) {
@@ -95,7 +104,11 @@ const Offers = () => {
 
             <div style={styles.statBox}>
               <p style={styles.statLabel}>🥇 Customer of the Year</p>
-              <h4>{analytics.customerOfYear?.name || "No data"}</h4>
+              <h4>
+                {analytics.customerOfYear?.name ||
+                 analytics.customerOfYear?.email ||
+                 "No data"}
+              </h4>
               <p style={styles.goldText}>
                 {analytics.customerOfYear?.totalGold || 0} g
               </p>
@@ -103,7 +116,11 @@ const Offers = () => {
 
             <div style={styles.statBox}>
               <p style={styles.statLabel}>👑 Victory Customer</p>
-              <h4>{analytics.victoryCustomer?.name || "No data"}</h4>
+              <h4>
+                {analytics.victoryCustomer?.name ||
+                 analytics.victoryCustomer?.email ||
+                 "No data"}
+              </h4>
               <p style={styles.goldText}>
                 {analytics.victoryCustomer?.totalGold || 0} g
               </p>

@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
 
 const Admin = () => {
 
@@ -15,26 +14,18 @@ const Admin = () => {
   });
 
   const [products, setProducts] = useState<any[]>([]);
-  const [goldRate, setGoldRate] = useState("");
   const [editId, setEditId] = useState<string | null>(null);
 
-  // ✅ FETCH PRODUCTS
   const fetchProducts = () => {
     axios.get("http://localhost:5000/api/products")
       .then(res => setProducts(res.data || []))
       .catch(() => setProducts([]));
   };
 
-  // ✅ LOAD DATA
   useEffect(() => {
     fetchProducts();
-
-    axios.get("http://localhost:5000/api/goldrate")
-      .then(res => setGoldRate(res.data?.ratePerGram || ""))
-      .catch(() => setGoldRate(""));
   }, []);
 
-  // ✅ INPUT CHANGE
   const handleChange = (e: any) => {
     setForm({
       ...form,
@@ -42,8 +33,14 @@ const Admin = () => {
     });
   };
 
-  // ✅ ADD / UPDATE
   const handleSubmit = async () => {
+
+    // ✅ VALIDATION
+    if (!form.name || !form.weight || !form.purity || !form.makingCharges || !form.gst) {
+      alert("Please fill all required fields");
+      return;
+    }
+
     try {
       if (editId) {
         await axios.put(`http://localhost:5000/api/products/${editId}`, form);
@@ -71,110 +68,92 @@ const Admin = () => {
     }
   };
 
-  // ✅ EDIT
   const handleEdit = (p: any) => {
     setForm(p);
     setEditId(p._id);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // ✅ DELETE
   const deleteProduct = async (id: string) => {
     await axios.delete(`http://localhost:5000/api/products/${id}`);
     fetchProducts();
   };
 
-  // ✅ GOLD RATE
-  const updateGoldRate = async () => {
-    await axios.post("http://localhost:5000/api/goldrate", {
-      ratePerGram: goldRate
-    });
-    alert("Gold Rate Updated");
-  };
-
   return (
-  <div style={styles.container}>
+    <div style={styles.container}>
 
-  <h1 style={styles.heading}>⚙️ Admin Dashboard</h1>
+      <h1 style={styles.heading}>⚙️ Admin Dashboard</h1>
 
-  {/* 🛍 FULL WIDTH PRODUCT FORM */}
-  <div style={styles.fullWidthCard}>
-    <h3 style={styles.cardTitle}>
-      {editId ? "✏️ Update Product" : "🛍 Add Product"}
-    </h3>
+      {/* 🛍 PRODUCT FORM */}
+      <div style={styles.fullWidthCard}>
+        <h3 style={styles.cardTitle}>
+          {editId ? "✏️ Update Product" : "🛍 Add Product"}
+        </h3>
 
-    <div style={styles.formGrid}>
-      <input name="name" value={form.name} onChange={handleChange} placeholder="Name" style={styles.input} />
-      <input name="price" value={form.price} onChange={handleChange} placeholder="Price" style={styles.input} />
-      <input name="weight" value={form.weight} onChange={handleChange} placeholder="Weight" style={styles.input} />
-      <input name="purity" value={form.purity} onChange={handleChange} placeholder="Purity" style={styles.input} />
-      <input name="makingCharges" value={form.makingCharges} onChange={handleChange} placeholder="Making Charges" style={styles.input} />
-      <input name="gst" value={form.gst} onChange={handleChange} placeholder="GST %" style={styles.input} />
-    </div>
+        <div style={styles.formGrid}>
+          <input name="name" value={form.name} onChange={handleChange} placeholder="Name" style={styles.input} />
 
-    <input
-      name="image"
-      value={form.image}
-      onChange={handleChange}
-      placeholder="Image URL"
-      style={styles.input}
-    />
+          {/* ❌ DISABLED PRICE */}
+          <input
+            name="price"
+            value={form.price}
+            placeholder="Auto Calculated"
+            style={{ ...styles.input, background: "#eee" }}
+            disabled
+          />
 
-    <button style={styles.primaryBtn} onClick={handleSubmit}>
-      {editId ? "Update Product" : "Add Product"}
-    </button>
-  </div>
+          <input name="weight" value={form.weight} onChange={handleChange} placeholder="Weight (grams)" style={styles.input} />
 
-  {/* 💰 GOLD RATE + 📦 ORDERS SIDE BY SIDE */}
-  <div style={styles.bottomGrid}>
+          {/* ✅ PURITY DROPDOWN */}
+          <select name="purity" value={form.purity} onChange={handleChange} style={styles.input}>
+            <option value="">Select Purity</option>
+            <option value="24K">24K</option>
+            <option value="22K">22K</option>
+            <option value="18K">18K</option>
+          </select>
 
-    {/* GOLD RATE */}
-    <div style={styles.card}>
-      <h3 style={styles.cardTitle}>💰 Gold Rate</h3>
+          <input name="makingCharges" value={form.makingCharges} onChange={handleChange} placeholder="Making Charges ₹" style={styles.input} />
 
-      <input
-        style={styles.input}
-        value={goldRate}
-        onChange={(e) => setGoldRate(e.target.value)}
-        placeholder="Enter rate"
-      />
+          <input name="gst" value={form.gst} onChange={handleChange} placeholder="GST %" style={styles.input} />
+        </div>
 
-      <button style={styles.primaryBtn} onClick={updateGoldRate}>
-        Update
-      </button>
-    </div>
+        <input
+          name="image"
+          value={form.image}
+          onChange={handleChange}
+          placeholder="Image URL"
+          style={styles.input}
+        />
 
-    {/* ORDERS */}
-    <Link to="/admin/orders" style={styles.cardLink}>
-      📦 Manage Orders →
-    </Link>
-
-  </div>
-
-  {/* PRODUCTS */}
-  <h2 style={styles.sectionTitle}>All Products</h2>
-
-  <div style={styles.productGrid}>
-    {products.map(p => (
-      <div key={p._id} style={styles.productCard}>
-        <img src={p.image} style={styles.image} />
-
-        <h4>{p.name}</h4>
-        <p style={styles.meta}>{p.weight}</p>
-
-        <button style={styles.editBtn} onClick={() => handleEdit(p)}>
-          Edit
-        </button>
-
-        <button style={styles.deleteBtn} onClick={() => deleteProduct(p._id)}>
-          Delete
+        <button style={styles.primaryBtn} onClick={handleSubmit}>
+          {editId ? "Update Product" : "Add Product"}
         </button>
       </div>
-    ))}
-  </div>
 
-</div>
-);
+      {/* 🛍 PRODUCTS */}
+      <h2 style={styles.sectionTitle}>All Products</h2>
+
+      <div style={styles.productGrid}>
+        {products.map(p => (
+          <div key={p._id} style={styles.productCard}>
+            <img src={p.image} style={styles.image} />
+
+            <h4>{p.name}</h4>
+            <p style={styles.meta}>{p.weight} g | {p.purity}</p>
+
+            <button style={styles.editBtn} onClick={() => handleEdit(p)}>
+              Edit
+            </button>
+
+            <button style={styles.deleteBtn} onClick={() => deleteProduct(p._id)}>
+              Delete
+            </button>
+          </div>
+        ))}
+      </div>
+
+    </div>
+  );
 };
 
 const styles = {
@@ -192,46 +171,10 @@ const styles = {
     color: "#2c3e50",
   },
 
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-    gap: "25px",
-    marginBottom: "40px",
-  },
-
-  card: {
-    background: "#fff",
-    padding: "25px",
-    borderRadius: "16px",
-    boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
-    display: "flex",
-    flexDirection: "column",
-    gap: "15px",
-  },
-
-  cardLink: {
-    textDecoration: "none",
-    fontWeight: "bold",
-    background: "#fff",
-    padding: "25px",
-    borderRadius: "16px",
-    boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
-    color: "#3498db",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "18px",
-  },
-
   cardTitle: {
     fontSize: "20px",
     fontWeight: "600",
     color: "#D4AF37",
-  },
-
-  row: {
-    display: "flex",
-    gap: "10px",
   },
 
   formGrid: {
@@ -245,7 +188,7 @@ const styles = {
     borderRadius: "8px",
     border: "1px solid #ddd",
     fontSize: "14px",
-    outline: "none",
+    marginBottom: "10px",
   },
 
   primaryBtn: {
@@ -313,19 +256,12 @@ const styles = {
   },
 
   fullWidthCard: {
-  background: "#fff",
-  padding: "30px",
-  borderRadius: "16px",
-  boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
-  marginBottom: "30px",
-},
-
-bottomGrid: {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: "25px",
-  marginBottom: "40px",
-},
+    background: "#fff",
+    padding: "30px",
+    borderRadius: "16px",
+    boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
+    marginBottom: "30px",
+  },
 };
 
 export default Admin;

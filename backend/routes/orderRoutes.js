@@ -7,12 +7,11 @@ const generateOrderId = () => {
   return "ORD" + Date.now() + Math.floor(Math.random() * 1000);
 };
 
-// ✅ 👉 Place Order
+// ✅ PLACE ORDER
 router.post("/", async (req, res) => {
   try {
     const { productName, price, image, userEmail, userName, weight } = req.body;
 
-    // 🔥 FIX: allow fallback name
     if (!productName || !price || !userEmail) {
       return res.status(400).json({ message: "Missing required fields" });
     }
@@ -22,120 +21,106 @@ router.post("/", async (req, res) => {
       price: Number(price),
       image,
       userEmail,
-      userName: userName || "Unknown User", // ⭐ IMPORTANT FIX
-      weight: Number(weight) || 1, // ⭐ avoid 0 / undefined
+      userName: userName || "Unknown User",
+      weight: Number(weight) || 1,
       orderId: generateOrderId(),
     });
-
-    console.log("ORDER SAVING:", newOrder);
 
     const savedOrder = await newOrder.save();
     res.json(savedOrder);
 
   } catch (error) {
-    console.log("ORDER ERROR:", error);
     res.status(500).json({ message: "Error placing order" });
   }
 });
 
 
-// 🔥 GOLD ANALYTICS (UPDATED FOR NAME)
-router.get("/analytics/top-customers", async (req, res) => {
+// 🔥 SUMMARY (MOVE THIS UP)
+router.get("/summary", async (req, res) => {
   try {
-    const now = new Date();
-
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(now.getFullYear() - 1);
-
-    const fiveYearsAgo = new Date();
-    fiveYearsAgo.setFullYear(now.getFullYear() - 5);
-
     const orders = await Order.find();
 
-    const yearlyMap = {};
-    const fiveYearMap = {};
+    const totalOrders = orders.length;
 
-    orders.forEach((order) => {
-      const weight = Number(order.weight || 0);
-      const date = new Date(order.createdAt);
+    const totalRevenue = orders.reduce(
+      (sum, o) => sum + Number(o.price || 0),
+      0
+    );
 
-      // ✅ 1 YEAR
-      if (date >= oneYearAgo) {
-        yearlyMap[order.userEmail] = {
-          name: order.userName || order.userEmail,
-          totalGold: (yearlyMap[order.userEmail]?.totalGold || 0) + weight
-        };
-      }
+    const users = new Set(orders.map(o => o.userEmail));
 
-      // ✅ 5 YEARS
-      if (date >= fiveYearsAgo) {
-        fiveYearMap[order.userEmail] = {
-          name: order.userName || order.userEmail,
-          totalGold: (fiveYearMap[order.userEmail]?.totalGold || 0) + weight
-        };
-      }
-    });
+    const today = new Date();
 
-    const topYearUser = Object.values(yearlyMap)
-      .sort((a, b) => b.totalGold - a.totalGold)[0];
+    const day = orders
+      .filter(o =>
+        new Date(o.createdAt).toDateString() === today.toDateString()
+      )
+      .reduce((sum, o) => sum + Number(o.price || 0), 0);
 
-    const topFiveUser = Object.values(fiveYearMap)
-      .sort((a, b) => b.totalGold - a.totalGold)[0];
+    const month = orders
+      .filter(o =>
+        new Date(o.createdAt).getMonth() === today.getMonth()
+      )
+      .reduce((sum, o) => sum + Number(o.price || 0), 0);
+
+    const year = orders
+      .filter(o =>
+        new Date(o.createdAt).getFullYear() === today.getFullYear()
+      )
+      .reduce((sum, o) => sum + Number(o.price || 0), 0);
 
     res.json({
-      customerOfYear: topYearUser || null,
-      victoryCustomer: topFiveUser || null,
+      products: orders.length,
+      orders: totalOrders,
+      users: users.size,
+      revenue: totalRevenue,
+      day,
+      month,
+      year
     });
 
-  } catch (error) {
-    console.log("ANALYTICS ERROR:", error);
-    res.status(500).json({ message: "Error fetching analytics" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 
 
-// 🔥 USERS WITH ORDER SUMMARY
+// 🔥 USERS WITH ORDERS
 router.get("/users-with-orders", async (req, res) => {
   try {
-    const users = await Order.aggregate([
+    const data = await Order.aggregate([
       {
         $group: {
           _id: "$userEmail",
-          name: { $first: "$userName" }, // ⭐ FIXED
+          name: { $first: "$userName" },
+          email: { $first: "$userEmail" },
+          orders: { $push: "$$ROOT" },
           totalSpent: { $sum: "$price" },
           totalGold: { $sum: "$weight" },
-          orders: { $push: "$$ROOT" }
+          firstOrderDate: { $min: "$createdAt" }
         }
-      },
-      { $sort: { totalGold: -1 } }
+      }
     ]);
 
-    res.json(users);
-
+    res.json(data);
   } catch (err) {
-    console.log("USERS ERROR:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Server Error" });
   }
 });
 
 
-// ✅ 👉 Get All Orders (Admin)
+// ✅ GET ALL ORDERS
 router.get("/", async (req, res) => {
   try {
-    const orders = await Order
-      .find()
-      .sort({ createdAt: -1 });
-
+    const orders = await Order.find().sort({ createdAt: -1 });
     res.json(orders);
-
   } catch (error) {
-    console.log(error);
     res.status(500).json({ message: "Error fetching all orders" });
   }
 });
 
 
-// ✅ 👉 Get Orders by Email (KEEP LAST)
+// ❗ KEEP THIS LAST ALWAYS
 router.get("/:email", async (req, res) => {
   try {
     const orders = await Order
@@ -143,29 +128,70 @@ router.get("/:email", async (req, res) => {
       .sort({ createdAt: -1 });
 
     res.json(orders);
-
   } catch (error) {
-    console.log(error);
     res.status(500).json({ message: "Error fetching orders" });
   }
 });
 
 
-// ✅ 👉 Delete Order
+// DELETE
 router.delete("/:id", async (req, res) => {
   try {
-    const deleted = await Order.findByIdAndDelete(req.params.id);
-
-    if (!deleted) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
+    await Order.findByIdAndDelete(req.params.id);
     res.json({ message: "Order deleted successfully" });
-
   } catch (error) {
-    console.log(error);
     res.status(500).json({ message: "Error deleting order" });
   }
 });
+
+
+router.get("/analytics/top-customers", async (req, res) => {
+  try {
+    const currentYear = new Date().getFullYear();
+
+    const users = await Order.aggregate([
+      {
+        $group: {
+          _id: "$userEmail",
+          name: { $first: "$userName" },
+          email: { $first: "$userEmail" },
+          orders: { $push: "$$ROOT" },
+          totalGold: { $sum: "$weight" } // lifetime gold
+        }
+      }
+    ]);
+
+    // 🏆 CUSTOMER OF THE YEAR (YEARLY)
+    const yearData = users.map(user => {
+      const yearlyGold = user.orders
+        .filter(o => new Date(o.createdAt).getFullYear() === currentYear)
+        .reduce((sum, o) => sum + Number(o.weight || 0), 0);
+
+      return {
+        ...user,
+        yearlyGold
+      };
+    });
+
+    const customerOfYear = yearData.sort(
+      (a, b) => b.yearlyGold - a.yearlyGold
+    )[0] || null;
+
+    // 👑 VICTORY CUSTOMER (ALL TIME)
+    const victoryCustomer = users.sort(
+      (a, b) => b.totalGold - a.totalGold
+    )[0] || null;
+
+    res.json({
+      customerOfYear,
+      victoryCustomer
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching analytics" });
+  }
+});
+
+
 
 module.exports = router;
