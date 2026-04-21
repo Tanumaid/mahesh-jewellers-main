@@ -44,16 +44,6 @@ const OrdersAdmin = () => {
     }
   };
 
-  const handleReject = async (id: string) => {
-    try {
-      await axios.put(`http://localhost:5000/api/orders/${id}/reject`);
-      alert("🚫 Order Rejected");
-      fetchOrders();
-    } catch (err: any) {
-      alert("❌ Error rejecting order");
-    }
-  };
-
   return (
     <div style={styles.container}>
       <h2 style={styles.heading}>📦 Orders Management</h2>
@@ -109,29 +99,20 @@ const OrdersAdmin = () => {
                       >
                         Approve
                       </button>
-                      <button 
-                        style={{...styles.actionBtn, background: "#e74c3c"}} 
-                        onClick={() => handleReject(order._id)}
-                      >
-                        Reject
-                      </button>
                     </div>
                   )}
 
                   {order.status === "Approved" && (
                     <div style={{ textAlign: "center" }}>
                       <p style={{ color: "#2ecc71", fontWeight: "bold", margin: "0 0 10px 0" }}>✔ Status: Approved</p>
-                      <button 
-                        style={{...styles.actionBtn, background: "#34495e", width: "100%"}}
-                        onClick={() => window.open(`http://localhost:5000/api/orders/${order.orderId}/invoice`, "_blank")}
-                      >
-                        View Final Invoice
-                      </button>
+                      {order.invoiceUrl && (
+                        <a href={order.invoiceUrl} target="_blank" rel="noreferrer">
+                          <button style={{...styles.actionBtn, background: "#34495e", width: "100%"}}>
+                            View Final Invoice
+                          </button>
+                        </a>
+                      )}
                     </div>
-                  )}
-
-                  {order.status === "Rejected" && (
-                    <p style={{ color: "#e74c3c", fontWeight: "bold", textAlign: "center", margin: 0 }}>❌ Status: Rejected</p>
                   )}
                   
                   {(!order.status || order.status === "Completed") && (

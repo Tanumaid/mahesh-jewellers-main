@@ -65,6 +65,11 @@ const orderSchema = new mongoose.Schema({
   isBooked: {
     type: Boolean,
     default: true,
+  },
+
+  invoiceUrl: {
+    type: String,
+    default: null,
   }
 
 }, {

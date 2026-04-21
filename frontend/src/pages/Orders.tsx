@@ -57,13 +57,12 @@ const Orders = () => {
              </div>
              <div style={{ textAlign: "right" }}>
                <p><strong>Total:</strong> ₹{order.totalAmount || order.price}</p>
-               {order.status === "Approved" && (
-                 <button 
-                   style={{...styles.btn, marginTop: "10px", fontSize: "12px", padding: "6px 12px"}}
-                   onClick={() => window.open(`http://localhost:5000/api/orders/${order.orderId}/invoice`, "_blank")}
-                 >
-                   Download Final Invoice
-                 </button>
+               {order.status === "Approved" && order.invoiceUrl && (
+                 <a href={order.invoiceUrl} target="_blank" rel="noreferrer">
+                   <button style={{...styles.btn, marginTop: "10px", fontSize: "12px", padding: "6px 12px"}}>
+                     Download Final Invoice
+                   </button>
+                 </a>
                )}
              </div>
           </div>
