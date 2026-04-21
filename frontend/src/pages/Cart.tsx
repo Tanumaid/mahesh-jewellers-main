@@ -3,6 +3,12 @@ import { CartContext } from "../context/CartContext";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
 const Cart = () => {
   const { cart, removeFromCart, updateQuantity, clearCart } = useContext(CartContext)!;
   const navigate = useNavigate();
@@ -48,6 +54,10 @@ const Cart = () => {
 
       setLoading(true);
 
+      const totalAmount = cart.reduce((sum, item) => {
+        return sum + (Number(item.price || 0) * (item.quantity || 1));
+      }, 0);
+
       const itemsPayload = cart.map(item => ({
         productId: item.id,
         name: item.name,
@@ -57,32 +67,75 @@ const Cart = () => {
         weight: convertToGrams(item.weight),
       }));
 
-      const orderData = {
-        items: itemsPayload,
-        userEmail: user.email,
-        userName: user.name,
+      // 1. Create Order on Backend
+      const { data } = await axios.post("http://localhost:5000/api/payment/create-order", {
+        totalAmount
+      });
+
+      if (!data.success) {
+        alert("Failed to create order");
+        setLoading(false);
+        return;
+      }
+
+      // 2. Open Razorpay Checkout
+      const options = {
+        key: "rzp_test_SgFRkU5ayN3mys", // Test Mode Key
+        amount: data.amount, // Advance amount in paise
+        currency: "INR",
+        name: "Mahesh Jewellers",
+        description: "Advance Payment (30%)",
+        order_id: data.order_id, // Razorpay Order ID
+        handler: async function (response: any) {
+          try {
+            // 3. Verify Payment & Save Order
+            const verifyRes = await axios.post("http://localhost:5000/api/payment/verify", {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              cartItems: itemsPayload,
+              totalAmount: totalAmount,
+              userEmail: user.email,
+              userName: user.name,
+            });
+
+            if (verifyRes.data.success) {
+              clearCart();
+              alert("Payment Successful! Order Booked.");
+              navigate("/order-success", {
+                state: { orderId: verifyRes.data.order.orderId },
+              });
+            } else {
+              alert("Payment Verification Failed!");
+            }
+          } catch (err: any) {
+            alert("Error during verification: " + err.message);
+          }
+        },
+        prefill: {
+          name: user.name,
+          email: user.email,
+        },
+        theme: {
+          color: "#D4AF37",
+        },
       };
 
-      const res = await axios.post(
-        "http://localhost:5000/api/orders/book",
-        orderData
-      );
-
-      const orderId = res.data.orderId;
-
-      clearCart();
-      alert("Payment of 30% Advance Successful!");
-
-      navigate("/order-success", {
-        state: { orderId },
+      const rzp = new window.Razorpay(options);
+      
+      rzp.on('payment.failed', function (response: any){
+        alert("Payment Failed! " + response.error.description);
+        setLoading(false);
       });
+
+      rzp.open();
 
     } catch (error: any) {
       console.log(error.response?.data);
-      alert(error.response?.data?.message || "Error placing order");
-    } finally {
+      alert(error.response?.data?.message || "Error initiating payment");
       setLoading(false);
     }
+    // Note: Do not set loading false immediately since the modal stays open.
   };
 
   const totalAmount = cart.reduce((sum, item) => {

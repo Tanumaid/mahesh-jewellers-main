@@ -1,8 +1,17 @@
 const express = require("express");
 const router = express.Router();
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 const multer = require("multer");
 const path = require("path");
+
+// Function to generate JWT Token
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: "30d",
+  });
+};
 
 // Configure Multer Storage
 const storage = multer.diskStorage({
@@ -53,9 +62,12 @@ const uploadMiddleware = (req, res, next) => {
 // ✅ REGISTER
 router.post("/register", uploadMiddleware, async (req, res) => {
   try {
-    const { name, email, password, aadhaar } = req.body;
+    console.log("REGISTER BODY:", req.body);
+    console.log("REGISTER FILES:", req.files);
+    
+    const { name, email, password, aadhaar, mobile, address } = req.body;
 
-    if (!name || !email || !password || !aadhaar) {
+    if (!name || !email || !password || !aadhaar || !mobile) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -63,8 +75,9 @@ router.post("/register", uploadMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Both Aadhaar Front and Back images are required" });
     }
 
-    const aadhaarFront = req.files.aadhaarFront[0].path.replace(/\\/g, "/");
-    const aadhaarBack = req.files.aadhaarBack[0].path.replace(/\\/g, "/");
+    // Save filenames directly or path, user expects filename
+    const aadhaarFront = req.files.aadhaarFront[0].filename;
+    const aadhaarBack = req.files.aadhaarBack[0].filename;
 
     // ✅ CHECK EMAIL (case-insensitive)
     const existingEmail = await User.findOne({ email: new RegExp('^' + email + '$', "i") });
@@ -73,25 +86,41 @@ router.post("/register", uploadMiddleware, async (req, res) => {
     }
 
     // ✅ CHECK AADHAAR
-    const existingAadhaar = await User.findOne({ aadhaar });
+    const existingAadhaar = await User.findOne({ aadhaarNumber: aadhaar });
     if (existingAadhaar) {
       return res.status(400).json({ message: "Aadhaar already registered" });
     }
 
-    const newUser = new User({ ...req.body, aadhaarFront, aadhaarBack, email: email.toLowerCase() });
+    // Hash Password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newUser = new User({ 
+      name,
+      email: email.toLowerCase(),
+      password: hashedPassword,
+      address,
+      phoneNumber: mobile, // Map mobile to phoneNumber
+      aadhaarNumber: aadhaar, // Map aadhaar to aadhaarNumber
+      aadhaarFront, 
+      aadhaarBack
+    });
+    
     await newUser.save();
 
     res.json({
+      _id: newUser._id,
       name: newUser.name,
       email: newUser.email,
-      _id: newUser._id
+      role: newUser.role,
+      token: generateToken(newUser._id)
     });
 
   } catch (error) {
 
     // 🔥 HANDLE DUPLICATE KEY ERROR (VERY IMPORTANT)
     if (error.code === 11000) {
-      if (error.keyPattern?.aadhaar) {
+      if (error.keyPattern?.aadhaarNumber) {
         return res.status(400).json({
           message: "Aadhaar already registered"
         });
@@ -100,6 +129,12 @@ router.post("/register", uploadMiddleware, async (req, res) => {
       if (error.keyPattern?.email) {
         return res.status(400).json({
           message: "Email already registered"
+        });
+      }
+
+      if (error.keyPattern?.phoneNumber) {
+        return res.status(400).json({
+          message: "Mobile number already registered"
         });
       }
     }
@@ -114,6 +149,8 @@ router.post("/register", uploadMiddleware, async (req, res) => {
 // ✅ LOGIN
 router.post("/login", async (req, res) => {
   try {
+    console.log("👉 /api/auth/login called");
+    console.log("Request body:", req.body);
     const { email, password } = req.body;
 
     // Validation
@@ -123,21 +160,28 @@ router.post("/login", async (req, res) => {
 
     // Find user (case-insensitive)
     const user = await User.findOne({ email: new RegExp('^' + email + '$', "i") });
+    console.log("User found:", user ? user.email : "Not found");
 
     if (!user) {
       return res.status(400).json({ message: "User not found" });
     }
 
     // Check password
-    if (user.password !== password) {
-      return res.status(400).json({ message: "Invalid password" });
+    console.log("Comparing passwords...");
+    const isMatch = await bcrypt.compare(password, user.password);
+    console.log("Password match:", isMatch);
+    
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid password (if this is an old account, please register again or reset password)" });
     }
 
-    // Return user
+    // Return user and token
     res.json({
+      _id: user._id,
       name: user.name,
       email: user.email,
-      _id: user._id
+      role: user.role,
+      token: generateToken(user._id)
     });
 
   } catch (error) {
@@ -158,19 +202,80 @@ router.get("/", async (req, res) => {
 });
 
 // ✅ ADMIN LOGIN
-// ✅ ADMIN LOGIN (HARDCODED)
 router.post("/admin-login", async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    console.log("👉 /api/auth/admin-login called");
+    console.log("Request body:", req.body);
+    const { email, password } = req.body;
 
-  if (email && email.toLowerCase() === "admin@gmail.com" && password === "admin123") {
-    return res.json({
-      name: "Admin",
-      email: "admin@gmail.com",
-      isAdmin: true
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email & password required" });
+    }
+
+    // Find admin user
+    const user = await User.findOne({ email: new RegExp('^' + email + '$', "i") });
+    console.log("Admin User found:", user ? user.email : "Not found");
+
+    if (!user) {
+      return res.status(400).json({ message: "Admin not found" });
+    }
+
+    if (user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Not an admin." });
+    }
+
+    // Check password
+    console.log("Comparing admin passwords...");
+    const isMatch = await bcrypt.compare(password, user.password);
+    console.log("Password match:", isMatch);
+
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid admin password" });
+    }
+
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      isAdmin: true,
+      role: user.role,
+      token: generateToken(user._id)
     });
+  } catch (error) {
+    console.log("ADMIN LOGIN ERROR:", error);
+    res.status(500).json({ message: "Server error" });
   }
+});
 
-  res.status(400).json({ message: "Invalid admin credentials" });
+// ✅ SEED ADMIN (Development utility to setup initial admin)
+router.post("/seed-admin", async (req, res) => {
+  try {
+    const adminEmail = "admin@gmail.com";
+    const existingAdmin = await User.findOne({ email: adminEmail });
+
+    if (existingAdmin) {
+      return res.json({ message: "Admin already exists", email: existingAdmin.email });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash("admin123", salt);
+
+    const adminUser = new User({
+      name: "Admin User",
+      email: adminEmail,
+      password: hashedPassword,
+      phoneNumber: "0000000000",
+      aadhaarFront: "placeholder",
+      aadhaarBack: "placeholder",
+      role: "admin"
+    });
+
+    await adminUser.save();
+    res.json({ message: "Admin seeded successfully!", email: adminEmail, password: "admin123" });
+  } catch (error) {
+    console.error("SEED ADMIN ERROR:", error);
+    res.status(500).json({ message: "Error seeding admin" });
+  }
 });
 
 
@@ -190,7 +295,8 @@ router.post("/reset-password", async (req, res) => {
     }
 
     // 🔥 UPDATE PASSWORD
-    user.password = newPassword;
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
     await user.save();
 
     res.json({ message: "Password updated successfully" });

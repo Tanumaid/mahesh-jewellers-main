@@ -24,16 +24,19 @@ const wishlistRoutes = require("./routes/wishlistRoutes");
 const goldRateRoutes = require("./routes/goldRateRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const purityRoutes = require("./routes/purityRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
 const User = require("./models/user");
 
 // API Routes
 app.use("/api/users", userRoutes);
+app.use("/api/auth", userRoutes); // Added to support /api/auth/* endpoints
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/goldrate", goldRateRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/purity", purityRoutes);
+app.use("/api/payment", paymentRoutes);
 
 // ================= OTP STORE =================
 const otpStore = {};
@@ -124,6 +127,12 @@ app.post("/api/verify-login-otp", async (req, res) => {
 // Test route
 app.get("/", (req, res) => {
   res.send("Mahesh Jewellers API Running");
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: err.message || "Internal Server Error" });
 });
 
 // Start server

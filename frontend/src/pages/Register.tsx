@@ -168,7 +168,7 @@ const Register = () => {
         formData.append("aadhaarBack", aadhaarBack);
       }
 
-      await axios.post("http://localhost:5000/api/users/register", formData, {
+      await axios.post("http://localhost:5000/api/auth/register", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 

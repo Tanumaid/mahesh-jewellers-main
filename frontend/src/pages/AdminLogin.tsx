@@ -14,11 +14,14 @@ const AdminLogin = () => {
 
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/users/admin-login",
+        "http://localhost:5000/api/auth/admin-login",
         { email, password }
       );
 
       localStorage.setItem("user", JSON.stringify(res.data));
+      if (res.data.token) {
+        localStorage.setItem("token", res.data.token);
+      }
 
       alert("Admin Login Success ✅");
 

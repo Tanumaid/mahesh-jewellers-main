@@ -33,8 +33,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const updateUser = (newUser: any) => {
     if (newUser) {
       localStorage.setItem("user", JSON.stringify(newUser));
+      if (newUser.token) {
+        localStorage.setItem("token", newUser.token);
+      }
     } else {
       localStorage.removeItem("user");
+      localStorage.removeItem("token");
     }
     setUser(newUser);
   };

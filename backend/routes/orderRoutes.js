@@ -99,8 +99,10 @@ async function generateInvoice(order) {
       doc.pipe(writeStream);
 
       // ================= HEADER =================
-      doc.rect(50, 45, 60, 60).lineWidth(1).stroke("#cccccc");
-      doc.fillColor("#D4AF37").fontSize(24).font("Helvetica-Bold").text("MJ", 63, 63);
+      const logoPath = path.join(__dirname, "../uploads/logo.png");
+      if (fs.existsSync(logoPath)) {
+        doc.image(logoPath, 50, 40, { width: 150, align: "left" });
+      }
       doc.fillColor("#000000");
       doc.fontSize(20).text("MAHESH JEWELLERS", 200, 50, { align: "right" });
       doc.fontSize(10).font("Helvetica").text("123 Main Bazaar, Mumbai, Maharashtra", 200, 75, { align: "right" });
@@ -116,17 +118,40 @@ async function generateInvoice(order) {
       doc.text(`Place of Supply: Maharashtra`, 50, topDetailsY + 45);
 
       const rightColX = 350;
-      const maskedAadhaar = user.aadhaar ? `XXXX-XXXX-${user.aadhaar.slice(-4)}` : "N/A";
-      doc.font("Helvetica-Bold").text("Bill To", rightColX, topDetailsY);
-      doc.font("Helvetica").text(`Name: ${user.name}`, rightColX, topDetailsY + 15);
-      doc.text(`Mobile: ${user.mobile || "N/A"}`, rightColX, topDetailsY + 30);
-      doc.text(`Address: ${user.address || "N/A"}`, rightColX, topDetailsY + 45);
-      doc.text(`Aadhaar No: ${maskedAadhaar}`, rightColX, topDetailsY + 60);
+      
+      // Address formatting
+      const rawAddress = user.address || "N/A";
+      const addressLines = rawAddress.split(",").map(part => part.trim()).filter(part => part.length > 0);
 
-      doc.moveTo(50, topDetailsY + 85).lineTo(545, topDetailsY + 85).stroke("#eeeeee");
+      doc.fontSize(11).font("Helvetica-Bold").text("Bill To:", rightColX, topDetailsY, { underline: true });
+      doc.font("Helvetica").text(`${user.name}`, rightColX, doc.y + 5);
+      doc.text(`${user.phoneNumber || user.mobile || "N/A"}`, rightColX, doc.y + 2);
+      
+      doc.moveDown(0.5);
+
+      if (addressLines.length > 0) {
+        addressLines.forEach((line) => {
+          doc.text(line, rightColX, doc.y, {
+            width: 200,
+            lineGap: 3,
+            align: "left"
+          });
+        });
+      } else {
+        doc.text("N/A", rightColX, doc.y, { width: 200, align: "left" });
+      }
+
+      // We dynamically calculate the next Y for Aadhaar No
+      doc.moveDown(0.5);
+      const maskedAadhaar = user.aadhaarNumber || user.aadhaar ? `XXXX-XXXX-${(user.aadhaarNumber || user.aadhaar).slice(-4)}` : "N/A";
+      doc.text(`Aadhaar No: ${maskedAadhaar}`, rightColX, doc.y);
+
+      // Find lowest point for divider line
+      const currentY = Math.max(doc.y + 15, topDetailsY + 90);
+      doc.moveTo(50, currentY).lineTo(545, currentY).stroke("#eeeeee");
 
       // ================= PRODUCT TABLE =================
-      const tableTop = topDetailsY + 110;
+      const tableTop = currentY + 25;
       doc.rect(50, tableTop - 5, 495, 20).fill("#f7f7f7");
       doc.fillColor("#000000").font("Helvetica-Bold").fontSize(10);
       doc.text("Product Name", 60, tableTop);
