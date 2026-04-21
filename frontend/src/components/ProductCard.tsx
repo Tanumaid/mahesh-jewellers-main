@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { CartContext } from "../context/CartContext";
 import axios from "axios";
+import { calculateFinalPrice, formatPrice } from "../utils/priceCalculator";
 
 const ProductCard = ({ product }: any) => {
 
@@ -17,31 +18,14 @@ const ProductCard = ({ product }: any) => {
       .catch(() => setGoldRates({}));
   }, []);
 
-  // 🔥 FIXED PRICE CALCULATION
-  const calculatePrice = () => {
-    const weight = parseFloat(product.weight) || 0;
-    const making = parseFloat(product.makingCharges) || 0;
-    const purity = product.purity || "22K";
-
-    const rate = goldRates[purity] || 0;
-
-    const goldPrice = weight * rate;
-
-    // ✅ Correct GST split
-    const goldGST = goldPrice * 0.03;
-    const makingGST = making * 0.05;
-
-    const final = goldPrice + making + goldGST + makingGST;
-
-    return final.toFixed(2);
-  };
+  // Local calculatePrice removed in favor of centralized utility.
 
   // 🔥 Add to cart
   const handleAddToCart = () => {
     addToCart({
       id: product._id,
       name: product.name,
-      price: calculatePrice(), // ✅ dynamic price
+      price: calculateFinalPrice(product, goldRates), // ✅ dynamic price
       image: product.image,
       quantity: 1
     });
@@ -61,7 +45,7 @@ const ProductCard = ({ product }: any) => {
 
       await axios.post("http://localhost:5000/api/wishlist", {
         productName: product.name,
-        price: calculatePrice(),
+        price: calculateFinalPrice(product, goldRates),
         image: product.image,
         userEmail: user.email
       });
@@ -82,7 +66,7 @@ const ProductCard = ({ product }: any) => {
       <h3>{product.name}</h3>
 
       {/* 🔥 Dynamic Price */}
-      <p style={styles.price}>₹{calculatePrice()}</p>
+      <p style={styles.price}>₹{formatPrice(calculateFinalPrice(product, goldRates))}</p>
 
       {/* Stock Badges */}
       <div style={{ marginTop: "10px", display: "flex", justifyContent: "center", gap: "8px", flexWrap: "wrap" }}>

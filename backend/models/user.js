@@ -16,6 +16,14 @@ const userSchema = new mongoose.Schema({
     unique: true,
     sparse: true // Allows nulls while keeping uniqueness for those who provide it
   },
+  aadhaarFront: {
+    type: String,
+    required: true
+  },
+  aadhaarBack: {
+    type: String,
+    required: true
+  },
 
   address: String,
   
