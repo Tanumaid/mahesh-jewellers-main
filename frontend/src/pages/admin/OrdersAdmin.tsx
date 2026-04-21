@@ -46,13 +46,31 @@ const OrdersAdmin = () => {
         <div style={styles.grid}>
           {orders.map((order) => (
             <div key={order._id} style={styles.card}>
-              <img src={order.image} style={styles.image} />
-
               <div style={styles.details}>
-                <h3>{order.productName}</h3>
+                {order.items ? (
+                  <>
+                    <h3 style={{ borderBottom: "1px solid #eee", paddingBottom: "5px" }}>Multi-Item Order ({order.items.length})</h3>
+                    <div style={{ maxHeight: "150px", overflowY: "auto", marginBottom: "10px" }}>
+                      {order.items.map((item: any) => (
+                        <div key={item._id || item.productId} style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "10px" }}>
+                          <img src={item.image} style={{ width: "50px", height: "50px", borderRadius: "5px", objectFit: "cover" }} />
+                          <div>
+                            <p style={{ margin: 0, fontWeight: "bold", fontSize: "13px" }}>{item.name}</p>
+                            <p style={{ margin: 0, fontSize: "12px", color: "gray" }}>₹{item.price} x {item.quantity}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <img src={order.image} style={styles.image} />
+                    <h3>{order.productName}</h3>
+                  </>
+                )}
 
-                <p>💰 ₹{order.price}</p>
-                <p>⚖️ {order.weight} g</p>
+                <p>💰 ₹{order.totalAmount || order.price}</p>
+                <p>⚖️ {order.totalWeight || order.weight} g</p>
 
                 <p>👤 {order.userName || "Unknown"}</p>
                 <p style={styles.email}>{order.userEmail}</p>

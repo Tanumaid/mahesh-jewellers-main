@@ -11,32 +11,63 @@ const generateOrderId = () => {
 // ✅ PLACE ORDER
 router.post("/", async (req, res) => {
   try {
-    const { productName, price, image, userEmail, userName, weight, quantity } = req.body;
+    const { items, userEmail, userName } = req.body;
 
-    if (!productName || !price || !userEmail) {
+    if (!items || !items.length || !userEmail) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    const orderQuantity = quantity ? Number(quantity) : 1;
-
-    // Verify stock and decrement
-    const product = await Product.findOne({ name: productName });
-    if (product) {
-      if (product.quantity < orderQuantity) {
-        return res.status(400).json({ message: `Only ${product.quantity} items left in stock` });
+    // Step 1: Validate stock for ALL items
+    for (const item of items) {
+      const product = await Product.findOne({ _id: item.productId || item.id });
+      if (!product) {
+        return res.status(400).json({ message: `Product ${item.name} not found` });
       }
-      product.quantity -= orderQuantity;
-      product.soldCount = (product.soldCount || 0) + orderQuantity;
-      await product.save();
+      if (product.quantity < item.quantity) {
+        return res.status(400).json({ message: `Only ${product.quantity} items left in stock for ${item.name}` });
+      }
     }
 
+    // Step 2: Calculate totalAmount and totalWeight, format items for DB
+    let totalAmount = 0;
+    let totalWeight = 0;
+    const orderItems = [];
+
+    for (const item of items) {
+      const itemWeight = Number(item.weight) || 0;
+      totalAmount += Number(item.price) * Number(item.quantity);
+      totalWeight += itemWeight * Number(item.quantity);
+
+      orderItems.push({
+        productId: item.productId || item.id,
+        name: item.name,
+        price: Number(item.price),
+        quantity: Number(item.quantity),
+        image: item.image,
+        weight: itemWeight
+      });
+    }
+
+    // Step 3: Atomically reduce stock
+    for (const item of orderItems) {
+      const result = await Product.findOneAndUpdate(
+        { _id: item.productId, quantity: { $gte: item.quantity } },
+        { $inc: { quantity: -item.quantity, soldCount: item.quantity } },
+        { new: true }
+      );
+      if (!result) {
+        // Very rare race condition where stock was bought between step 1 and 3.
+        return res.status(400).json({ message: `Insufficient stock for ${item.name} during checkout.` });
+      }
+    }
+
+    // Step 4: Save Order
     const newOrder = new Order({
-      productName,
-      price: Number(price),
-      image,
+      items: orderItems,
+      totalAmount,
+      totalWeight,
       userEmail,
       userName: userName || "Unknown User",
-      weight: Number(weight) || 1,
       orderId: generateOrderId(),
     });
 
@@ -44,6 +75,7 @@ router.post("/", async (req, res) => {
     res.json(savedOrder);
 
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Error placing order" });
   }
 });
@@ -57,7 +89,7 @@ router.get("/summary", async (req, res) => {
     const totalOrders = orders.length;
 
     const totalRevenue = orders.reduce(
-      (sum, o) => sum + Number(o.price || 0),
+      (sum, o) => sum + Number(o.totalAmount || o.price || 0),
       0
     );
 
@@ -69,19 +101,19 @@ router.get("/summary", async (req, res) => {
       .filter(o =>
         new Date(o.createdAt).toDateString() === today.toDateString()
       )
-      .reduce((sum, o) => sum + Number(o.price || 0), 0);
+      .reduce((sum, o) => sum + Number(o.totalAmount || o.price || 0), 0);
 
     const month = orders
       .filter(o =>
         new Date(o.createdAt).getMonth() === today.getMonth()
       )
-      .reduce((sum, o) => sum + Number(o.price || 0), 0);
+      .reduce((sum, o) => sum + Number(o.totalAmount || o.price || 0), 0);
 
     const year = orders
       .filter(o =>
         new Date(o.createdAt).getFullYear() === today.getFullYear()
       )
-      .reduce((sum, o) => sum + Number(o.price || 0), 0);
+      .reduce((sum, o) => sum + Number(o.totalAmount || o.price || 0), 0);
 
     res.json({
       products: orders.length,
@@ -109,8 +141,8 @@ router.get("/users-with-orders", async (req, res) => {
           name: { $first: "$userName" },
           email: { $first: "$userEmail" },
           orders: { $push: "$$ROOT" },
-          totalSpent: { $sum: "$price" },
-          totalGold: { $sum: "$weight" },
+          totalSpent: { $sum: { $cond: [ { $ifNull: ["$totalAmount", false] }, "$totalAmount", "$price" ] } },
+          totalGold: { $sum: { $cond: [ { $ifNull: ["$totalWeight", false] }, "$totalWeight", "$weight" ] } },
           firstOrderDate: { $min: "$createdAt" }
         }
       }
@@ -170,7 +202,7 @@ router.get("/analytics/top-customers", async (req, res) => {
           name: { $first: "$userName" },
           email: { $first: "$userEmail" },
           orders: { $push: "$$ROOT" },
-          totalGold: { $sum: "$weight" } // lifetime gold
+          totalGold: { $sum: { $cond: [ { $ifNull: ["$totalWeight", false] }, "$totalWeight", "$weight" ] } } // lifetime gold
         }
       }
     ]);
@@ -179,7 +211,7 @@ router.get("/analytics/top-customers", async (req, res) => {
     const yearData = users.map(user => {
       const yearlyGold = user.orders
         .filter(o => new Date(o.createdAt).getFullYear() === currentYear)
-        .reduce((sum, o) => sum + Number(o.weight || 0), 0);
+        .reduce((sum, o) => sum + Number(o.totalWeight || o.weight || 0), 0);
 
       return {
         ...user,

@@ -17,12 +17,12 @@ const Orders = () => {
 
   // 💰 TOTAL MONEY
   const totalAmount = orders.reduce((total, order) => {
-    return total + parseFloat(order.price || "0");
+    return total + parseFloat(order.totalAmount || order.price || "0");
   }, 0);
 
   // 🪙 TOTAL GOLD (grams → tola)
   const totalGoldTola = orders.reduce((total, order) => {
-    return total + (parseFloat(order.weight || "0") / 10);
+    return total + (parseFloat(order.totalWeight || order.weight || "0") / 10);
   }, 0);
 
   if (orders.length === 0) {
@@ -35,15 +35,36 @@ const Orders = () => {
 
       {/* 🛍 Orders List */}
       {orders.map((order) => (
-        <div key={order._id} style={styles.row}>
-          <img src={order.image} style={styles.img} />
-
-          <div>
-            <h3>{order.productName}</h3>
-            <p>₹{order.price}</p>
-            <p>Weight: {order.weight || 0} g</p>
-            <p>Order ID: {order.orderId}</p>
+        <div key={order._id} style={styles.orderContainer}>
+          <div style={styles.orderHeader}>
+             <p><strong>Order ID:</strong> {order.orderId}</p>
+             <p><strong>Total:</strong> ₹{order.totalAmount || order.price}</p>
           </div>
+          
+          {/* Legacy Order Compatibility */}
+          {order.productName && !order.items && (
+            <div style={styles.row}>
+              <img src={order.image} style={styles.img} />
+              <div>
+                <h3>{order.productName}</h3>
+                <p>₹{order.price}</p>
+                <p>Weight: {order.weight || 0} g</p>
+              </div>
+            </div>
+          )}
+
+          {/* New Multi-Item Orders */}
+          {order.items && order.items.map((item: any) => (
+            <div key={item._id || item.productId} style={styles.row}>
+              <img src={item.image} style={styles.img} />
+              <div>
+                <h3>{item.name}</h3>
+                <p>₹{item.price} x {item.quantity}</p>
+                <p>Weight: {item.weight || 0} g</p>
+                <p>Subtotal: ₹{Number(item.price) * Number(item.quantity)}</p>
+              </div>
+            </div>
+          ))}
         </div>
       ))}
 
@@ -65,6 +86,21 @@ const Orders = () => {
 };
 
 const styles = {
+  orderContainer: {
+    background: "#fff",
+    borderRadius: "12px",
+    padding: "20px",
+    marginBottom: "20px",
+    boxShadow: "0 4px 10px rgba(0,0,0,0.05)",
+  },
+  orderHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    borderBottom: "2px solid #eee",
+    paddingBottom: "10px",
+    marginBottom: "10px",
+    fontSize: "16px",
+  },
   row: {
     display: "flex",
     gap: "20px",
