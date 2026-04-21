@@ -4,38 +4,25 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const Cart = () => {
-  const { cart, removeFromCart, clearCart } = useContext(CartContext)!;
+  const { cart, removeFromCart, updateQuantity, clearCart } = useContext(CartContext)!;
   const navigate = useNavigate();
 
-  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const convertToGrams = (weightStr: any) => {
     if (!weightStr) return 1;
-
     if (typeof weightStr === "number") return weightStr;
-
-    if (weightStr.includes("tola")) {
-      return parseFloat(weightStr) * 11.66;
-    }
-
-    if (weightStr.includes("g")) {
-      return parseFloat(weightStr);
-    }
-
+    if (weightStr.includes("tola")) return parseFloat(weightStr) * 11.66;
+    if (weightStr.includes("g")) return parseFloat(weightStr);
     return Number(weightStr) || 1;
   };
 
-  // 🔥 TIME LEFT FUNCTION
   const getRemainingTime = (addedAt: number) => {
     if (!addedAt) return "Unknown";
-
     const diff = 24 * 60 * 60 * 1000 - (Date.now() - addedAt);
-
     if (diff <= 0) return "Expired";
-
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff / (1000 * 60)) % 60);
-
     return `${hours}h ${minutes}m left`;
   };
 
@@ -43,10 +30,10 @@ const Cart = () => {
     return Date.now() - addedAt > 24 * 60 * 60 * 1000;
   };
 
-  const handlePlaceOrder = async (item: any) => {
-    // 🔥 BLOCK EXPIRED ITEMS
-    if (isExpired(item.addedAt)) {
-      alert("This item has expired ❌");
+  const handlePlaceOrder = async () => {
+    const expiredItems = cart.filter(item => isExpired(item.addedAt));
+    if (expiredItems.length > 0) {
+      alert("Some items in your cart have expired. Please remove them to proceed. ❌");
       return;
     }
 
@@ -59,15 +46,21 @@ const Cart = () => {
         return;
       }
 
-      setLoadingId(item.id);
+      setLoading(true);
 
-      const orderData = {
-        productName: item.name,
+      const itemsPayload = cart.map(item => ({
+        productId: item.id,
+        name: item.name,
         price: Number(item.price),
         image: item.image,
+        quantity: item.quantity || 1,
+        weight: convertToGrams(item.weight),
+      }));
+
+      const orderData = {
+        items: itemsPayload,
         userEmail: user.email,
         userName: user.name,
-        weight: convertToGrams(item.weight),
       };
 
       const res = await axios.post(
@@ -87,12 +80,12 @@ const Cart = () => {
       console.log(error.response?.data);
       alert(error.response?.data?.message || "Error placing order");
     } finally {
-      setLoadingId(null);
+      setLoading(false);
     }
   };
 
   const totalAmount = cart.reduce((sum, item) => {
-    return sum + Number(item.price || 0);
+    return sum + (Number(item.price || 0) * (item.quantity || 1));
   }, 0);
 
   if (cart.length === 0) {
@@ -113,6 +106,7 @@ const Cart = () => {
 
       {cart.map((item) => {
         const expired = isExpired(item.addedAt);
+        const itemQuantity = item.quantity || 1;
 
         return (
           <div key={item.id} style={styles.cartItem}>
@@ -121,48 +115,23 @@ const Cart = () => {
             <div style={{ flex: 1 }}>
               <h3>{item.name}</h3>
               <p>₹{item.price}</p>
+              
+              <div style={styles.quantityControl}>
+                 <button onClick={() => updateQuantity(item.id, itemQuantity - 1)} disabled={itemQuantity <= 1}>-</button>
+                 <span>{itemQuantity}</span>
+                 <button onClick={() => updateQuantity(item.id, itemQuantity + 1)}>+</button>
+              </div>
 
               <p style={styles.weightText}>
-                Weight: {item.weight || "Not set"}
+                Weight: {item.weight || "Not set"} | Subtotal: ₹{(Number(item.price) * itemQuantity).toFixed(2)}
               </p>
 
-              {/* 🔥 TIMER DISPLAY */}
-              <p
-                style={{
-                  color: expired ? "gray" : "red",
-                  fontSize: "13px",
-                  fontWeight: "bold",
-                }}
-              >
+              <p style={{ color: expired ? "gray" : "red", fontSize: "13px", fontWeight: "bold" }}>
                 ⏳ {getRemainingTime(item.addedAt)}
               </p>
             </div>
 
-            <button
-              style={{
-                ...styles.orderBtn,
-                opacity:
-                  loadingId === item.id || expired ? 0.5 : 1,
-                cursor:
-                  loadingId === item.id || expired
-                    ? "not-allowed"
-                    : "pointer",
-                backgroundColor: expired ? "gray" : "#D4AF37",
-              }}
-              disabled={loadingId === item.id || expired}
-              onClick={() => handlePlaceOrder(item)}
-            >
-              {expired
-                ? "Expired"
-                : loadingId === item.id
-                ? "Placing..."
-                : "Place Order"}
-            </button>
-
-            <button
-              style={styles.removeBtn}
-              onClick={() => removeFromCart(item.id)}
-            >
+            <button style={styles.removeBtn} onClick={() => removeFromCart(item.id)}>
               Remove
             </button>
           </div>
@@ -171,6 +140,19 @@ const Cart = () => {
 
       <div style={styles.totalBox}>
         Total Amount: ₹{totalAmount.toFixed(2)}
+        <br />
+        <button
+          style={{
+            ...styles.orderBtn,
+            opacity: loading || cart.some(i => isExpired(i.addedAt)) ? 0.5 : 1,
+            cursor: loading || cart.some(i => isExpired(i.addedAt)) ? "not-allowed" : "pointer",
+            marginTop: "15px"
+          }}
+          disabled={loading || cart.some(i => isExpired(i.addedAt))}
+          onClick={handlePlaceOrder}
+        >
+          {loading ? "Placing Order..." : "Place Order"}
+        </button>
       </div>
     </div>
   );
@@ -185,18 +167,21 @@ const styles = {
     borderBottom: "1px solid #ddd",
     paddingBottom: "15px",
   },
-
   image: {
     width: "100px",
     height: "100px",
     objectFit: "cover" as const,
   },
-
+  quantityControl: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    margin: "10px 0"
+  },
   weightText: {
     fontSize: "12px",
     color: "gray",
   },
-
   removeBtn: {
     padding: "8px 15px",
     backgroundColor: "red",
@@ -204,15 +189,14 @@ const styles = {
     border: "none",
     cursor: "pointer",
   },
-
   orderBtn: {
-    padding: "10px 20px",
+    padding: "15px 30px",
     backgroundColor: "#D4AF37",
     color: "#000",
     border: "none",
     fontWeight: "bold",
+    fontSize: "16px"
   },
-
   shopBtn: {
     marginTop: "20px",
     padding: "10px 20px",
@@ -221,13 +205,12 @@ const styles = {
     border: "none",
     cursor: "pointer",
   },
-
   totalBox: {
     marginTop: "30px",
     textAlign: "right" as const,
-    fontSize: "20px",
+    fontSize: "24px",
     fontWeight: "bold",
-    color: "#D4AF37",
+    color: "#000",
   },
 };
 

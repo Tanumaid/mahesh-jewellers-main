@@ -3,6 +3,7 @@ import { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import { CartContext } from "../context/CartContext";
 import type { Product } from "../types/Product";
+import HomeCarousel from "../components/HomeCarousel";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ const Home = () => {
       .catch(() => setGoldRates({}));
 
     // 🔥 Fetch products
-    axios.get("http://localhost:5000/api/products")
+    axios.get(`http://localhost:5000/api/products?t=${Date.now()}`)
       .then((res) => {
         setProducts(res.data);
         setLoadingProducts(false);
@@ -55,8 +56,11 @@ const Home = () => {
 
   return (
     <div style={styles.container}>
+      
+      {/* 🎠 CAROUSEL AT TOP */}
+      <HomeCarousel />
 
-      <h1>Welcome to Mahesh Jewellers 💎</h1>
+      <h1 style={{ marginTop: "40px" }}>Welcome to Mahesh Jewellers 💎</h1>
 
       {user && <h3>Hello, {user.name}</h3>}
 

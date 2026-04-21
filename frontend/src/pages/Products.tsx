@@ -30,7 +30,9 @@ const Products = () => {
         if (selectedSubcategory) params.append("subcategory", selectedSubcategory);
         
         if (params.toString()) {
-          url += `?${params.toString()}`;
+          url += `?${params.toString()}&t=${Date.now()}`;
+        } else {
+          url += `?t=${Date.now()}`;
         }
 
         const productRes = await axios.get(url);
