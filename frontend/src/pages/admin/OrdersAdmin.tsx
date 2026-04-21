@@ -34,6 +34,26 @@ const OrdersAdmin = () => {
     }
   };
 
+  const handleApprove = async (id: string) => {
+    try {
+      await axios.put(`http://localhost:5000/api/orders/${id}/approve`);
+      alert("✅ Order Approved and Stock Updated");
+      fetchOrders();
+    } catch (err: any) {
+      alert("❌ " + (err.response?.data?.message || "Error approving order"));
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      await axios.put(`http://localhost:5000/api/orders/${id}/reject`);
+      alert("🚫 Order Rejected");
+      fetchOrders();
+    } catch (err: any) {
+      alert("❌ Error rejecting order");
+    }
+  };
+
   return (
     <div style={styles.container}>
       <h2 style={styles.heading}>📦 Orders Management</h2>
@@ -78,13 +98,54 @@ const OrdersAdmin = () => {
                 <p style={styles.orderId}>
                   🆔 {order.orderId}
                 </p>
+                
+                {/* STATUS & BUTTONS */}
+                <div style={{ marginTop: "15px", borderTop: "1px solid #eee", paddingTop: "15px" }}>
+                  {order.status === "Pending Approval" && (
+                    <div style={{ display: "flex", gap: "10px" }}>
+                      <button 
+                        style={{...styles.actionBtn, background: "#2ecc71"}} 
+                        onClick={() => handleApprove(order._id)}
+                      >
+                        Approve
+                      </button>
+                      <button 
+                        style={{...styles.actionBtn, background: "#e74c3c"}} 
+                        onClick={() => handleReject(order._id)}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+
+                  {order.status === "Approved" && (
+                    <div style={{ textAlign: "center" }}>
+                      <p style={{ color: "#2ecc71", fontWeight: "bold", margin: "0 0 10px 0" }}>✔ Status: Approved</p>
+                      <button 
+                        style={{...styles.actionBtn, background: "#34495e", width: "100%"}}
+                        onClick={() => window.open(`http://localhost:5000/api/orders/${order.orderId}/invoice`, "_blank")}
+                      >
+                        View Final Invoice
+                      </button>
+                    </div>
+                  )}
+
+                  {order.status === "Rejected" && (
+                    <p style={{ color: "#e74c3c", fontWeight: "bold", textAlign: "center", margin: 0 }}>❌ Status: Rejected</p>
+                  )}
+                  
+                  {(!order.status || order.status === "Completed") && (
+                     <p style={{ color: "#f39c12", fontWeight: "bold", textAlign: "center", margin: 0 }}>Status: {order.status || 'Legacy'}</p>
+                  )}
+                </div>
+
               </div>
 
               <button
                 style={styles.deleteBtn}
                 onClick={() => deleteOrder(order._id)}
               >
-                Delete
+                Delete Order
               </button>
             </div>
           ))}
@@ -147,12 +208,23 @@ const styles = {
   deleteBtn: {
     marginTop: "10px",
     padding: "10px",
-    background: "red",
+    background: "#ff4757",
     color: "#fff",
     border: "none",
     borderRadius: "6px",
     cursor: "pointer",
+    fontWeight: "bold",
   },
+  
+  actionBtn: {
+    flex: 1,
+    padding: "8px",
+    color: "#fff",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontWeight: "bold",
+  }
 };
 
 export default OrdersAdmin;

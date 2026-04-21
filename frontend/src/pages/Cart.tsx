@@ -64,13 +64,14 @@ const Cart = () => {
       };
 
       const res = await axios.post(
-        "http://localhost:5000/api/orders",
+        "http://localhost:5000/api/orders/book",
         orderData
       );
 
       const orderId = res.data.orderId;
 
       clearCart();
+      alert("Payment of 30% Advance Successful!");
 
       navigate("/order-success", {
         state: { orderId },
@@ -139,7 +140,15 @@ const Cart = () => {
       })}
 
       <div style={styles.totalBox}>
-        Total Amount: ₹{totalAmount.toFixed(2)}
+        <div style={{ fontSize: "16px", color: "#555", marginBottom: "10px" }}>
+          Total Amount: ₹{totalAmount.toFixed(2)}
+        </div>
+        <div style={{ fontSize: "20px", color: "#27ae60", fontWeight: "bold" }}>
+          Advance to Pay (30%): ₹{(totalAmount * 0.30).toFixed(2)}
+        </div>
+        <div style={{ fontSize: "16px", color: "#e74c3c", marginTop: "5px" }}>
+          Remaining (Pay at Store): ₹{(totalAmount * 0.70).toFixed(2)}
+        </div>
         <br />
         <button
           style={{
@@ -151,7 +160,7 @@ const Cart = () => {
           disabled={loading || cart.some(i => isExpired(i.addedAt))}
           onClick={handlePlaceOrder}
         >
-          {loading ? "Placing Order..." : "Place Order"}
+          {loading ? "Processing..." : "Pay Advance & Book Order"}
         </button>
       </div>
     </div>

@@ -16,11 +16,9 @@
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "mongoose": "^9.3.0",
-<<<<<<< HEAD
-    "node-fetch": "^3.3.2"
-=======
-    "multer": "^2.1.1"
->>>>>>> d26dc55ed1811762c06d331a35c796d017027a86
+    "node-fetch": "^3.3.2",
+    "multer": "^2.1.1",
+    "pdfkit": "^0.18.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

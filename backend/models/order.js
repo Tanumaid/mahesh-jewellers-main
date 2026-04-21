@@ -38,6 +38,33 @@ const orderSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
+  },
+
+  status: {
+    type: String,
+    enum: ["Pending Approval", "Approved", "Rejected", "Completed"],
+    default: "Pending Approval",
+  },
+
+  paymentStatus: {
+    type: String,
+    enum: ["Advance Paid", "Pending", "Completed"],
+    default: "Advance Paid",
+  },
+
+  advanceAmount: {
+    type: Number,
+    default: 0,
+  },
+
+  remainingAmount: {
+    type: Number,
+    default: 0,
+  },
+
+  isBooked: {
+    type: Boolean,
+    default: true,
   }
 
 }, {
