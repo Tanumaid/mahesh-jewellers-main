@@ -16,9 +16,20 @@ const OrderSuccess = () => {
         Please visit the shop and show this Order ID to collect your jewellery.
       </p>
 
-      <Link to="/">
-        <button style={styles.btn}>Go to Home</button>
-      </Link>
+      <p style={{ marginTop: "15px", color: "#f39c12", fontWeight: "bold" }}>
+        Note: Your order is currently Pending Approval. <br/>
+        You can download the final invoice from your Orders page once approved by the Admin.
+      </p>
+
+      <div style={{ marginTop: "30px", display: "flex", gap: "15px", justifyContent: "center" }}>
+        <Link to="/orders">
+          <button style={styles.invoiceBtn}>View My Orders</button>
+        </Link>
+
+        <Link to="/">
+          <button style={styles.btn}>Go to Home</button>
+        </Link>
+      </div>
     </div>
   );
 };
@@ -31,6 +42,17 @@ const styles = {
     color: "#fff",
     border: "none",
     cursor: "pointer",
+    borderRadius: "5px"
+  },
+  invoiceBtn: {
+    marginTop: "20px",
+    padding: "10px 20px",
+    backgroundColor: "#D4AF37",
+    color: "#000",
+    fontWeight: "bold",
+    border: "none",
+    cursor: "pointer",
+    borderRadius: "5px"
   },
 };
 

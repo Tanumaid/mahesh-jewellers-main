@@ -37,8 +37,35 @@ const Orders = () => {
       {orders.map((order) => (
         <div key={order._id} style={styles.orderContainer}>
           <div style={styles.orderHeader}>
-             <p><strong>Order ID:</strong> {order.orderId}</p>
-             <p><strong>Total:</strong> ₹{order.totalAmount || order.price}</p>
+             <div>
+               <p><strong>Order ID:</strong> {order.orderId}</p>
+               <p style={{ marginTop: "5px" }}>
+                 <span style={{ 
+                   padding: "3px 8px", 
+                   borderRadius: "12px", 
+                   fontSize: "12px", 
+                   fontWeight: "bold",
+                   background: order.status === 'Pending Approval' ? '#f39c12' : order.status === 'Approved' ? '#2ecc71' : '#e74c3c',
+                   color: '#fff'
+                 }}>
+                   {order.status || 'Legacy'}
+                 </span>
+                 <span style={{ fontSize: "12px", marginLeft: "10px", color: "#555" }}>
+                   Payment: {order.paymentStatus || 'Completed'}
+                 </span>
+               </p>
+             </div>
+             <div style={{ textAlign: "right" }}>
+               <p><strong>Total:</strong> ₹{order.totalAmount || order.price}</p>
+               {order.status === "Approved" && (
+                 <button 
+                   style={{...styles.btn, marginTop: "10px", fontSize: "12px", padding: "6px 12px"}}
+                   onClick={() => window.open(`http://localhost:5000/api/orders/${order.orderId}/invoice`, "_blank")}
+                 >
+                   Download Final Invoice
+                 </button>
+               )}
+             </div>
           </div>
           
           {/* Legacy Order Compatibility */}
@@ -134,6 +161,13 @@ const styles = {
     fontSize: "16px",
     color: "#444",
   },
+  btn: {
+    backgroundColor: "#000",
+    color: "#fff",
+    border: "none",
+    cursor: "pointer",
+    borderRadius: "5px"
+  }
 };
 
 export default Orders;
