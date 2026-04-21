@@ -50,15 +50,22 @@ router.post("/", async (req, res) => {
 
     // Step 3: Atomically reduce stock
     for (const item of orderItems) {
+      // Fetch current product state for logging
+      const beforeProduct = await Product.findById(item.productId);
+      console.log(`[Checkout] Before update -> Product: ${item.name}, Current Qty: ${beforeProduct?.quantity}, Requested: ${item.quantity}`);
+
       const result = await Product.findOneAndUpdate(
         { _id: item.productId, quantity: { $gte: item.quantity } },
         { $inc: { quantity: -item.quantity, soldCount: item.quantity } },
         { new: true }
       );
+      
       if (!result) {
         // Very rare race condition where stock was bought between step 1 and 3.
         return res.status(400).json({ message: `Insufficient stock for ${item.name} during checkout.` });
       }
+      
+      console.log(`[Checkout] After update -> Product: ${item.name}, New Qty: ${result.quantity}`);
     }
 
     // Step 4: Save Order

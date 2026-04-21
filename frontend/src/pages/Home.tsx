@@ -24,7 +24,7 @@ const Home = () => {
       .catch(() => setGoldRates({}));
 
     // 🔥 Fetch products
-    axios.get("http://localhost:5000/api/products")
+    axios.get(`http://localhost:5000/api/products?t=${Date.now()}`)
       .then((res) => {
         setProducts(res.data);
         setLoadingProducts(false);

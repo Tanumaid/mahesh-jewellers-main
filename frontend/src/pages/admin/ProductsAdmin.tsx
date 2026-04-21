@@ -21,7 +21,7 @@ const ProductsAdmin = () => {
   }, []);
 
   const fetchProducts = async () => {
-    const res = await axios.get("http://localhost:5000/api/products");
+    const res = await axios.get(`http://localhost:5000/api/products?t=${Date.now()}`);
     setProducts(res.data);
   };
 

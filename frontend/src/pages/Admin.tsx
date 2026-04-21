@@ -23,7 +23,8 @@ const Admin = () => {
   const [editId, setEditId] = useState<string | null>(null);
 
   const fetchProducts = () => {
-    axios.get("http://localhost:5000/api/products")
+    // Add cache-busting parameter to ensure fresh data
+    axios.get(`http://localhost:5000/api/products?t=${Date.now()}`)
       .then(res => setProducts(res.data || []))
       .catch(() => setProducts([]));
   };
