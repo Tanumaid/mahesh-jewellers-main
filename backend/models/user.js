@@ -16,6 +16,14 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true   // 🔥 IMPORTANT
   },
+  aadhaarFront: {
+    type: String,
+    required: true
+  },
+  aadhaarBack: {
+    type: String,
+    required: true
+  },
 
   address: String,
   mobile: String
