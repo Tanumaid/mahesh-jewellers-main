@@ -3,6 +3,7 @@ import { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import { CartContext } from "../context/CartContext";
 import type { Product } from "../types/Product";
+import { calculatePriceBreakdown, calculateFinalPrice, formatPrice } from "../utils/priceCalculator";
 
 const ProductDetails = () => {
 
@@ -32,32 +33,7 @@ const ProductDetails = () => {
 
   }, [id]);
 
-  // ✅ UPDATED PRICE FUNCTION (returns full breakdown)
-  const calculatePrice = () => {
-    if (!product) return null;
-
-    const weight = parseFloat(product.weight || "0");
-    const making = parseFloat(product.makingCharges || "0");
-    const purity = product.purity || "22K";
-
-    const rate = goldRates[purity] || 0;
-
-    const goldPrice = weight * rate;
-    const goldGST = goldPrice * 0.03;
-    const makingGST = making * 0.05;
-
-    const final = goldPrice + making + goldGST + makingGST;
-
-    return {
-      goldPrice,
-      making,
-      goldGST,
-      makingGST,
-      final
-    };
-  };
-
-  const priceData = calculatePrice();
+  const priceData = product ? calculatePriceBreakdown(product, goldRates) : null;
 
   if (loading) {
     return <h2 style={{ padding: "40px" }}>Loading...</h2>;
@@ -72,7 +48,7 @@ const ProductDetails = () => {
     addToCart({
       id: product._id,
       name: product.name,
-      price: priceData?.final.toFixed(2),
+      price: product ? calculateFinalPrice(product, goldRates) : "0.00",
       image: product.image,
       quantity: 1,
       weight: product.weight || "0",
@@ -93,19 +69,18 @@ const ProductDetails = () => {
 
         <p><strong>Weight:</strong> {product.weight} grams</p>
         <p><strong>Purity:</strong> {product.purity}</p>
-        <p><strong>Making Charges:</strong> ₹{product.makingCharges}</p>
+        <p><strong>Making Charges:</strong> ₹{formatPrice(product.makingCharges || "0")}</p>
 
         {/* 💰 FINAL PRICE */}
         <h3 style={styles.price}>
-          Price: ₹{priceData?.final.toFixed(2)}
+          Price: ₹{priceData ? formatPrice(priceData.final) : "0.00"}
         </h3>
 
         {/* 🔥 PRICE BREAKDOWN (NEW FEATURE) */}
         <div style={styles.breakdown}>
-          <p>Gold Price: ₹{priceData?.goldPrice.toFixed(2)}</p>
-          <p>Making: ₹{priceData?.making}</p>
-          <p>GST (3% Gold): ₹{priceData?.goldGST.toFixed(2)}</p>
-          <p>GST (5% Making): ₹{priceData?.makingGST.toFixed(2)}</p>
+          <p>Gold Price: ₹{priceData ? formatPrice(priceData.goldPrice) : "0.00"}</p>
+          <p>Making: ₹{priceData ? formatPrice(priceData.making) : "0.00"}</p>
+          <p>GST (Gold 3% / Making 5%): ₹{priceData ? formatPrice(priceData.totalGST) : "0.00"}</p>
         </div>
 
         <button style={styles.btn} onClick={handleAddToCart}>

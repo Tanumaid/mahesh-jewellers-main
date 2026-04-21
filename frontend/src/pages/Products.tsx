@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import type { Product } from "../types/Product";
 import CategoryFilter from "../components/CategoryFilter";
 import SubcategoryFilter from "../components/SubcategoryFilter";
+import { calculateFinalPrice, formatPrice } from "../utils/priceCalculator";
 
 const Products = () => {
 
@@ -57,20 +58,7 @@ const Products = () => {
     setSelectedSubcategory(""); // Reset subcategory when category changes
   };
 
-  const calculatePrice = (product: Product) => {
-    const weight = parseFloat(product.weight || "0");
-    const making = parseFloat(product.makingCharges || "0");
-    const purity = product.purity || "22K";
-
-    const rate = goldRates[purity] || 0;
-
-    const goldPrice = weight * rate;
-
-    const goldGST = goldPrice * 0.03;
-    const makingGST = making * 0.05;
-
-    return (goldPrice + making + goldGST + makingGST).toFixed(2);
-  };
+  // Local calculatePrice removed in favor of centralized utility.
 
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(search.toLowerCase())
@@ -122,7 +110,7 @@ const Products = () => {
 
             <h3>{product.name}</h3>
 
-            <p style={styles.price}>₹{calculatePrice(product)}</p>
+            <p style={styles.price}>₹{formatPrice(calculateFinalPrice(product, goldRates))}</p>
 
             {/* Stock Badges */}
             <div style={{ marginTop: "10px", display: "flex", justifyContent: "center", gap: "8px", flexWrap: "wrap", marginBottom: "15px" }}>
@@ -158,7 +146,7 @@ const Products = () => {
                 addToCart({
                   id: product._id,
                   name: product.name,
-                  price: calculatePrice(product),
+                  price: calculateFinalPrice(product, goldRates),
                   image: product.image,
                   quantity: 1,
                   weight: product.weight || "0", // ⭐ FIX

@@ -4,6 +4,7 @@ import axios from "axios";
 import { CartContext } from "../context/CartContext";
 import type { Product } from "../types/Product";
 import HomeCarousel from "../components/HomeCarousel";
+import { calculateFinalPrice, formatPrice } from "../utils/priceCalculator";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -39,20 +40,7 @@ const Home = () => {
     navigate("/");
   };
 
-  // ✅ CARAT-WISE PRICE CALCULATION
-  const calculatePrice = (product: Product) => {
-    const weight = parseFloat(product.weight || "0");
-    const making = parseFloat(product.makingCharges || "0");
-    const gst = parseFloat(product.gst || "0");
-
-    const rate = goldRates[product.purity || ""] || 0;
-
-    const base = weight * rate;
-    const total = base + making;
-    const final = total + (total * gst / 100);
-
-    return final.toFixed(2);
-  };
+  // The local calculatePrice has been removed in favor of the centralized utility.
 
   return (
     <div style={styles.container}>
@@ -117,7 +105,7 @@ const Home = () => {
               <h3>{product.name}</h3>
 
               {/* ✅ DYNAMIC PRICE */}
-              <p style={styles.price}>₹{calculatePrice(product)}</p>
+              <p style={styles.price}>₹{formatPrice(calculateFinalPrice(product, goldRates))}</p>
 
               <button
                 style={styles.btn}
@@ -125,7 +113,7 @@ const Home = () => {
                   addToCart({
                     id: product._id,
                     name: product.name,
-                    price: calculatePrice(product),
+                    price: calculateFinalPrice(product, goldRates),
                     image: product.image,
                     quantity: 1,
                     weight: product.weight || "0",
