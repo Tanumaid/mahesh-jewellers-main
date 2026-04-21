@@ -107,7 +107,7 @@ const styles = {
   carouselContainer: {
     position: "relative" as const,
     width: "100%",
-    height: "450px", // Fixed height requested
+    height: "calc(100vh - 70px)", // Responsive height minus approx navbar height
     margin: "0 auto",
     overflow: "hidden",
     backgroundColor: "#000",
@@ -145,9 +145,8 @@ const styles = {
   },
   mainImage: {
     height: "100%",
-    width: "auto",
-    maxWidth: "100%",
-    objectFit: "contain" as const,
+    width: "100%",
+    objectFit: "cover" as const,
     zIndex: 2,
     position: "relative" as const,
   },

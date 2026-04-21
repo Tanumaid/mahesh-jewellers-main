@@ -11,10 +11,10 @@ const userSchema = new mongoose.Schema({
 
   password: String,
 
-  aadhaar: {
+  aadhaarNumber: {
     type: String,
-    required: true,
-    unique: true   // 🔥 IMPORTANT
+    unique: true,
+    sparse: true // Allows nulls while keeping uniqueness for those who provide it
   },
   aadhaarFront: {
     type: String,
@@ -26,7 +26,17 @@ const userSchema = new mongoose.Schema({
   },
 
   address: String,
-  mobile: String
+  
+  phoneNumber: {
+    type: String,
+    required: true,
+    unique: true
+  },
+
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
 });
 
 module.exports = mongoose.model("User", userSchema);

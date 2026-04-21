@@ -136,7 +136,7 @@ const Home = () => {
 const styles = {
   container: {
     textAlign: "center" as const,
-    marginTop: "80px",
+    marginTop: "0",
   },
 
   goldBox: {
