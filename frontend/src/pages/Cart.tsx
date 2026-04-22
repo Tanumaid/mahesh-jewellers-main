@@ -23,15 +23,6 @@ const Cart = () => {
     return Number(weightStr) || 1;
   };
 
-  const getRemainingTime = (addedAt: number) => {
-    if (!addedAt) return "Unknown";
-    const diff = 24 * 60 * 60 * 1000 - (Date.now() - addedAt);
-    if (diff <= 0) return "Expired";
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff / (1000 * 60)) % 60);
-    return `${hours}h ${minutes}m left`;
-  };
-
   const isExpired = (addedAt: number) => {
     return Date.now() - addedAt > 24 * 60 * 60 * 1000;
   };
@@ -180,8 +171,8 @@ const Cart = () => {
                 Weight: {item.weight || "Not set"} | Subtotal: ₹{(Number(item.price) * itemQuantity).toFixed(2)}
               </p>
 
-              <p style={{ color: expired ? "gray" : "red", fontSize: "13px", fontWeight: "bold" }}>
-                ⏳ {getRemainingTime(item.addedAt)}
+              <p style={{ color: "gray", fontSize: "13px", fontWeight: "bold" }}>
+                {expired ? "❌ Item Expired" : ""}
               </p>
             </div>
 
