@@ -99,67 +99,61 @@ async function generateInvoice(order) {
       doc.pipe(writeStream);
 
       // ================= HEADER =================
-      const logoPath = path.join(__dirname, "../uploads/logo.png");
+      const logoPath = path.join(__dirname, "../../frontend/public/img/logo.jpeg");
+      const pageWidth = doc.page.width;
+      
       if (fs.existsSync(logoPath)) {
-        doc.image(logoPath, 50, 40, { width: 80 });
+        doc.image(logoPath, 0, 0, { width: pageWidth, height: 130 });
       }
-      doc.fillColor("#000000");
-      doc.fontSize(18).font("Helvetica-Bold").text("MAHESH JEWELLERS", 150, 40);
-      doc.fontSize(10).font("Helvetica").text("Ashvi Bk, Tal.Sangamner, Dist.Ahilyanagar - 413714", 150, 60);
-      doc.text("GSTIN: 27AAAAA0000A1Z5", 150, 75);
-      doc.moveTo(50, 125).lineTo(545, 125).lineWidth(1).stroke("#eeeeee");
-      doc.moveDown(2);
-
-      // ================= INVOICE DETAILS =================
-      const topDetailsY = 145;
-      doc.fontSize(10).font("Helvetica-Bold").text("Invoice Details", 50, topDetailsY);
-      doc.font("Helvetica").text(`Order ID: ${order.orderId}`, 50, topDetailsY + 15);
-      doc.text(`Date & Time: ${new Date(order.createdAt).toLocaleString()}`, 50, topDetailsY + 30);
       
-      const rightColX = 350;
-      doc.font("Helvetica-Bold").text("Payment Details", rightColX, topDetailsY);
-      doc.font("Helvetica").text(`Payment Mode: ${order.paymentStatus || "N/A"}`, rightColX, topDetailsY + 15);
-      doc.text(`Status: ${order.status || "N/A"}`, rightColX, topDetailsY + 30);
+      let currentY = 150;
 
-      doc.moveTo(50, topDetailsY + 50).lineTo(545, topDetailsY + 50).stroke("#eeeeee");
-
-      // ================= BILLING DETAILS =================
-      const billingY = topDetailsY + 65;
+      // ================= INVOICE DETAILS & PAYMENT =================
+      doc.fontSize(10).font("Helvetica-Bold").text("Invoice Details", 50, currentY);
+      doc.text("Payment Details", 350, currentY);
       
-      // Address formatting
-      const rawAddress = user.address || "N/A";
-      const addressLines = rawAddress.split(",").map(part => part.trim()).filter(part => part.length > 0);
-
-      doc.fontSize(11).font("Helvetica-Bold").text("Bill To", rightColX, billingY);
-      doc.moveDown(0.5);
-      doc.font("Helvetica").text(`Name: ${user.name}`, rightColX, doc.y);
-      doc.text(`Mobile: ${user.phoneNumber || user.mobile || "N/A"}`, rightColX, doc.y + 2);
+      currentY += 20;
+      doc.font("Helvetica").text(`Invoice ID: ${order.orderId}`, 50, currentY);
+      doc.text(`Payment Mode: ${order.paymentStatus || "N/A"}`, 350, currentY);
       
-      doc.moveDown(0.5);
-      doc.text("Address:", rightColX, doc.y);
+      currentY += 20;
+      doc.text(`Date: ${new Date(order.createdAt).toLocaleString("en-IN")}`, 50, currentY);
+      doc.text(`Status: ${order.status || "N/A"}`, 350, currentY);
+      
+      currentY += 20;
+      doc.text("Place of Supply: Maharashtra", 50, currentY);
 
-      if (addressLines.length > 0) {
-        addressLines.forEach((line) => {
-          doc.text(line, rightColX, doc.y, {
-            width: 200,
-            lineGap: 3,
-            align: "left"
-          });
-        });
-      } else {
-        doc.text("N/A", rightColX, doc.y, { width: 200, align: "left" });
-      }
-
-      doc.moveDown(0.5);
+      currentY += 20;
+      doc.moveTo(50, currentY).lineTo(545, currentY).stroke("#eeeeee");
+      
+      // ================= BILL TO SECTION =================
+      currentY += 20;
+      doc.fontSize(11).font("Helvetica-Bold").text("Bill To", 50, currentY);
+      
+      currentY += 15;
+      doc.font("Helvetica").text(`Name: ${user.name}`, 50, currentY);
+      currentY += 15;
+      doc.text(`Mobile: ${user.phoneNumber || user.mobile || "N/A"}`, 50, currentY);
+      
+      currentY += 15;
+      // ✅ IMPORTANT: ADDRESS WRAP
+      doc.text(`Address: ${user.address || "N/A"}`, 50, currentY, {
+        width: 250,
+        align: "left"
+      });
+      
+      // ✅ MOVE Y AFTER ADDRESS PROPERLY
+      currentY = doc.y + 10;
+      
       const maskedAadhaar = user.aadhaarNumber || user.aadhaar ? `XXXX-XXXX-${(user.aadhaarNumber || user.aadhaar).slice(-4)}` : "N/A";
-      doc.text(`Aadhaar No: ${maskedAadhaar}`, rightColX, doc.y);
-
-      // Find lowest point for divider line
-      let currentY = Math.max(doc.y + 15, billingY + 90);
+      doc.text(`Aadhaar No: ${maskedAadhaar}`, 50, currentY);
+      
+      currentY += 20;
       doc.moveTo(50, currentY).lineTo(545, currentY).stroke("#eeeeee");
 
       // ================= PRODUCT TABLE =================
-      const tableTop = currentY + 25;
+      currentY += 15;
+      const tableTop = currentY;
       doc.rect(50, tableTop - 5, 495, 20).fill("#f7f7f7");
       doc.fillColor("#000000").font("Helvetica-Bold").fontSize(10);
       doc.text("Product Name", 60, tableTop);
@@ -289,10 +283,9 @@ async function generateInvoice(order) {
 
       // ================= FOOTER =================
       doc.fontSize(10).font("Helvetica");
-      const footerY = 750;
+      const footerY = doc.page.height - 50;
       doc.text("Thank you for shopping with us", 50, footerY, { align: "center", width: 495 });
-      doc.moveDown(0.5);
-      doc.font("Helvetica-Bold").text("Mahesh Jewellers | Trusted Since 1995", 50, doc.y, { align: "center", width: 495 });
+      doc.font("Helvetica-Bold").text("Mahesh Jewellers | Trusted Since 1995", 50, footerY + 15, { align: "center", width: 495 });
 
       doc.end();
 
