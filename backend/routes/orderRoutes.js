@@ -99,14 +99,14 @@ async function generateInvoice(order) {
       doc.pipe(writeStream);
 
       // ================= HEADER =================
-      const logoPath = path.join(__dirname, "../../frontend/public/img/logo.jpeg");
+      const logoPath = path.join(__dirname, "../uploads/logo.png");
       if (fs.existsSync(logoPath)) {
-        doc.image(logoPath, 50, 40, { width: 110, align: "left" });
+        doc.image(logoPath, 50, 40, { width: 80 });
       }
       doc.fillColor("#000000");
-      doc.fontSize(20).text("MAHESH JEWELLERS", 200, 50, { align: "right" });
-      doc.fontSize(10).font("Helvetica").text("Ashvi Bk, Tal.Sangamner, Dist.Ahilyanagar - 413714", 200, 75, { align: "right" });
-      doc.text("GSTIN: 27AAAAA0000A1Z5", 200, 90, { align: "right" });
+      doc.fontSize(18).font("Helvetica-Bold").text("MAHESH JEWELLERS", 150, 40);
+      doc.fontSize(10).font("Helvetica").text("Ashvi Bk, Tal.Sangamner, Dist.Ahilyanagar - 413714", 150, 60);
+      doc.text("GSTIN: 27AAAAA0000A1Z5", 150, 75);
       doc.moveTo(50, 125).lineTo(545, 125).lineWidth(1).stroke("#eeeeee");
       doc.moveDown(2);
 
