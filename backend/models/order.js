@@ -74,13 +74,8 @@ const orderSchema = new mongoose.Schema({
 
   oldExchange: {
     isApplied: { type: Boolean, default: false },
-    goldWeight: { type: Number, default: 0 },
-    goldRate: { type: Number, default: 0 },
-    goldAmount: { type: Number, default: 0 },
-    silverWeight: { type: Number, default: 0 },
-    silverRate: { type: Number, default: 0 },
-    silverAmount: { type: Number, default: 0 },
-    totalExchange: { type: Number, default: 0 }
+    metalType: { type: String, enum: ["Gold", "Silver", "Both"], default: "Gold" },
+    exchangeAmount: { type: Number, default: 0 }
   }
 
 }, {

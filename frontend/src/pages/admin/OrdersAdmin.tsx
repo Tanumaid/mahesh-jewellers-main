@@ -119,51 +119,33 @@ const OrdersAdmin = () => {
                         </label>
 
                         {exchangeState[order._id]?.isApplied && (
-                          <div style={{ marginTop: "10px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                          <div style={{ marginTop: "10px", display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
                             <div>
-                              <p style={{ fontSize: "12px", margin: "0 0 5px", color: "#555" }}>Gold Weight (g)</p>
-                              <input 
-                                type="number" 
+                              <p style={{ fontSize: "12px", margin: "0 0 5px", color: "#555" }}>Metal Type</p>
+                              <select 
                                 style={styles.inputSm} 
-                                value={exchangeState[order._id]?.goldWeight || ""} 
-                                onChange={(e) => handleExchangeChange(order._id, 'goldWeight', e.target.value)} 
-                              />
+                                value={exchangeState[order._id]?.metalType || "Gold"} 
+                                onChange={(e) => handleExchangeChange(order._id, 'metalType', e.target.value)} 
+                              >
+                                <option value="Gold">Gold</option>
+                                <option value="Silver">Silver</option>
+                                <option value="Both">Both</option>
+                              </select>
                             </div>
                             <div>
-                              <p style={{ fontSize: "12px", margin: "0 0 5px", color: "#555" }}>Gold Rate (₹)</p>
+                              <p style={{ fontSize: "12px", margin: "0 0 5px", color: "#555" }}>Exchange Amount (₹)</p>
                               <input 
                                 type="number" 
+                                placeholder="Enter exchange amount"
                                 style={styles.inputSm} 
-                                value={exchangeState[order._id]?.goldRate || ""} 
-                                onChange={(e) => handleExchangeChange(order._id, 'goldRate', e.target.value)} 
-                              />
-                            </div>
-                            <div>
-                              <p style={{ fontSize: "12px", margin: "0 0 5px", color: "#555" }}>Silver Weight (g)</p>
-                              <input 
-                                type="number" 
-                                style={styles.inputSm} 
-                                value={exchangeState[order._id]?.silverWeight || ""} 
-                                onChange={(e) => handleExchangeChange(order._id, 'silverWeight', e.target.value)} 
-                              />
-                            </div>
-                            <div>
-                              <p style={{ fontSize: "12px", margin: "0 0 5px", color: "#555" }}>Silver Rate (₹)</p>
-                              <input 
-                                type="number" 
-                                style={styles.inputSm} 
-                                value={exchangeState[order._id]?.silverRate || ""} 
-                                onChange={(e) => handleExchangeChange(order._id, 'silverRate', e.target.value)} 
+                                value={exchangeState[order._id]?.exchangeAmount || ""} 
+                                onChange={(e) => handleExchangeChange(order._id, 'exchangeAmount', e.target.value)} 
                               />
                             </div>
                             
-                            <div style={{ gridColumn: "span 2", marginTop: "5px", padding: "10px", background: "#e8f6f3", borderRadius: "5px" }}>
+                            <div style={{ marginTop: "5px", padding: "10px", background: "#e8f6f3", borderRadius: "5px" }}>
                               {(() => {
-                                const gw = Number(exchangeState[order._id]?.goldWeight) || 0;
-                                const gr = Number(exchangeState[order._id]?.goldRate) || 0;
-                                const sw = Number(exchangeState[order._id]?.silverWeight) || 0;
-                                const sr = Number(exchangeState[order._id]?.silverRate) || 0;
-                                const tot = (gw * gr) + (sw * sr);
+                                const tot = Number(exchangeState[order._id]?.exchangeAmount) || 0;
                                 const newFinal = Math.max(0, (order.totalAmount || order.price) - tot);
                                 return (
                                   <>

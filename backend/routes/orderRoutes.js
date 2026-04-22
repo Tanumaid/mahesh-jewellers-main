@@ -183,42 +183,15 @@ async function generateInvoice(order) {
       // ================= GOLD / SILVER EXCHANGE =================
       if (order.oldExchange && order.oldExchange.isApplied) {
         currentY += 30;
-        doc.fillColor("#000000").font("Helvetica-Bold").fontSize(10).text("GOLD / SILVER EXCHANGE", 50, currentY);
-        currentY += 15;
-        
-        doc.rect(50, currentY - 5, 495, 20).fill("#f7f7f7");
-        doc.fillColor("#000000").font("Helvetica-Bold").fontSize(10);
-        doc.text("Type", 60, currentY);
-        doc.text("Weight(g)", 200, currentY, { width: 80, align: "center" });
-        doc.text("Rate", 320, currentY, { width: 90, align: "right" });
-        doc.text("Amount", 440, currentY, { width: 90, align: "right" });
-        doc.moveTo(50, currentY - 5).lineTo(545, currentY - 5).stroke("#cccccc");
-        doc.moveTo(50, currentY + 15).lineTo(545, currentY + 15).stroke("#cccccc");
-        
-        currentY += 25;
+        doc.fillColor("#000000").font("Helvetica-Bold").fontSize(10).text("Old Exchange", 50, currentY);
         doc.font("Helvetica");
-
-        if (order.oldExchange.goldWeight > 0) {
-          doc.text("Gold", 60, currentY);
-          doc.text(`${order.oldExchange.goldWeight}g`, 200, currentY, { width: 80, align: "center" });
-          doc.text(`Rs. ${order.oldExchange.goldRate}`, 320, currentY, { width: 90, align: "right" });
-          doc.text(`Rs. ${order.oldExchange.goldAmount.toLocaleString("en-IN")}`, 440, currentY, { width: 90, align: "right" });
-          currentY += 20;
-        }
-
-        if (order.oldExchange.silverWeight > 0) {
-          doc.text("Silver", 60, currentY);
-          doc.text(`${order.oldExchange.silverWeight}g`, 200, currentY, { width: 80, align: "center" });
-          doc.text(`Rs. ${order.oldExchange.silverRate}`, 320, currentY, { width: 90, align: "right" });
-          doc.text(`Rs. ${order.oldExchange.silverAmount.toLocaleString("en-IN")}`, 440, currentY, { width: 90, align: "right" });
-          currentY += 20;
-        }
-
-        doc.moveTo(50, currentY).lineTo(545, currentY).stroke("#cccccc");
-        currentY += 10;
         
-        doc.font("Helvetica-Bold");
-        doc.text(`Total Exchange: Rs. ${order.oldExchange.totalExchange.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 280, currentY, { width: 250, align: "right" });
+        currentY += 15;
+        doc.text(`Metal: ${order.oldExchange.metalType || "Gold"}`, 50, currentY);
+        
+        currentY += 15;
+        doc.text(`Amount: Rs. ${(order.oldExchange.exchangeAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 50, currentY);
+        
         currentY += 15;
       }
 
@@ -251,14 +224,14 @@ async function generateInvoice(order) {
 
       if (order.oldExchange && order.oldExchange.isApplied) {
         doc.text("Old Exchange Deduction:", 280, currentY, { width: 150, align: "left" });
-        doc.text(`- ${fmt(order.oldExchange.totalExchange)}`, 440, currentY, { width: 90, align: "right" });
+        doc.text(`- ${fmt(order.oldExchange.exchangeAmount)}`, 440, currentY, { width: 90, align: "right" });
         
         currentY += 15;
         doc.moveTo(280, currentY).lineTo(545, currentY).stroke("#cccccc");
         currentY += 10;
 
         doc.font("Helvetica-Bold");
-        const payableAmount = Math.max(0, totalAmount - order.oldExchange.totalExchange);
+        const payableAmount = Math.max(0, totalAmount - order.oldExchange.exchangeAmount);
         doc.text("Final Payable Amount:", 280, currentY, { width: 150, align: "left" });
         doc.text(fmt(payableAmount), 440, currentY, { width: 90, align: "right" });
         currentY += 15;
@@ -266,7 +239,7 @@ async function generateInvoice(order) {
       }
 
       const currentPayable = order.oldExchange && order.oldExchange.isApplied 
-        ? Math.max(0, totalAmount - order.oldExchange.totalExchange) 
+        ? Math.max(0, totalAmount - order.oldExchange.exchangeAmount) 
         : totalAmount;
 
       const currentAdvance = order.advanceAmount || (currentPayable * 0.3);
@@ -312,31 +285,19 @@ router.put("/:id/approve", async (req, res) => {
 
     // Process old exchange if provided and applied
     if (oldExchange && oldExchange.isApplied) {
-      const goldWeight = Number(oldExchange.goldWeight) || 0;
-      const goldRate = Number(oldExchange.goldRate) || 0;
-      const silverWeight = Number(oldExchange.silverWeight) || 0;
-      const silverRate = Number(oldExchange.silverRate) || 0;
+      const exchangeAmount = Number(oldExchange.exchangeAmount) || 0;
 
-      const goldAmount = goldWeight * goldRate;
-      const silverAmount = silverWeight * silverRate;
-      const totalExchange = goldAmount + silverAmount;
-
-      if (totalExchange > order.totalAmount) {
+      if (exchangeAmount > order.totalAmount) {
         return res.status(400).json({ message: "Exchange amount cannot exceed total order amount" });
       }
 
       order.oldExchange = {
         isApplied: true,
-        goldWeight,
-        goldRate,
-        goldAmount,
-        silverWeight,
-        silverRate,
-        silverAmount,
-        totalExchange
+        metalType: oldExchange.metalType || "Gold",
+        exchangeAmount
       };
 
-      order.remainingAmount = Math.max(0, order.totalAmount - order.advanceAmount - totalExchange);
+      order.remainingAmount = Math.max(0, order.totalAmount - order.advanceAmount - exchangeAmount);
     }
 
     // Reduce stock
