@@ -27,9 +27,10 @@ const Products = () => {
       try {
         let url = "http://localhost:5000/api/products";
         const params = new URLSearchParams();
+
         if (selectedCategory !== "All") params.append("category", selectedCategory);
         if (selectedSubcategory) params.append("subcategory", selectedSubcategory);
-        
+
         if (params.toString()) {
           url += `?${params.toString()}&t=${Date.now()}`;
         } else {
@@ -55,10 +56,8 @@ const Products = () => {
 
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
-    setSelectedSubcategory(""); // Reset subcategory when category changes
+    setSelectedSubcategory("");
   };
-
-  // Local calculatePrice removed in favor of centralized utility.
 
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(search.toLowerCase())
@@ -98,66 +97,79 @@ const Products = () => {
       )}
 
       <div style={styles.grid}>
-        {filteredProducts.map((product) => (
-          <div key={product._id} style={styles.card}>
+        {filteredProducts.map((product) => {
 
-            <img
-              src={product.image}
-              style={styles.image}
-              alt={product.name}
-              onClick={() => navigate(`/product/${product._id}`)}
-            />
+          // ✅ IMPORTANT FIX: calculate only when rates loaded
+          const finalPrice =
+            Object.keys(goldRates).length > 0
+              ? calculateFinalPrice(product, goldRates)
+              : "0.00";
 
-            <h3>{product.name}</h3>
+          return (
+            <div key={product._id} style={styles.card}>
 
-            <p style={styles.price}>₹{formatPrice(calculateFinalPrice(product, goldRates))}</p>
+              <img
+                src={product.image}
+                style={styles.image}
+                alt={product.name}
+                onClick={() => navigate(`/product/${product._id}`)}
+              />
 
-            {/* Stock Badges */}
-            <div style={{ marginTop: "10px", display: "flex", justifyContent: "center", gap: "8px", flexWrap: "wrap", marginBottom: "15px" }}>
-              {product.quantity === 0 && (
-                <span style={{ padding: "4px 8px", borderRadius: "12px", fontSize: "12px", fontWeight: "bold", color: "#fff", backgroundColor: "#e74c3c" }}>
-                  Out of Stock
-                </span>
-              )}
+              <h3>{product.name}</h3>
 
-              {product.quantity === 1 && (
-                <span style={{ padding: "4px 8px", borderRadius: "12px", fontSize: "12px", fontWeight: "bold", color: "#fff", backgroundColor: "#e67e22" }}>
-                  Only 1 left
-                </span>
-              )}
+              {/* ✅ FIXED PRICE DISPLAY */}
+              <p style={styles.price}>
+                {finalPrice === "0.00" ? "Loading..." : `₹${formatPrice(finalPrice)}`}
+              </p>
 
-              {(product.soldCount || 0) >= 5 && (
-                <span style={{ padding: "4px 8px", borderRadius: "12px", fontSize: "12px", fontWeight: "bold", backgroundColor: "#ffeb3b", color: "#d35400" }}>
-                  🔥 Trending
-                </span>
-              )}
+              {/* Stock Badges */}
+              <div style={{ marginTop: "10px", display: "flex", justifyContent: "center", gap: "8px", flexWrap: "wrap", marginBottom: "15px" }}>
+                {product.quantity === 0 && (
+                  <span style={{ padding: "4px 8px", borderRadius: "12px", fontSize: "12px", fontWeight: "bold", color: "#fff", backgroundColor: "#e74c3c" }}>
+                    Out of Stock
+                  </span>
+                )}
+
+                {product.quantity === 1 && (
+                  <span style={{ padding: "4px 8px", borderRadius: "12px", fontSize: "12px", fontWeight: "bold", color: "#fff", backgroundColor: "#e67e22" }}>
+                    Only 1 left
+                  </span>
+                )}
+
+                {(product.soldCount || 0) >= 5 && (
+                  <span style={{ padding: "4px 8px", borderRadius: "12px", fontSize: "12px", fontWeight: "bold", backgroundColor: "#ffeb3b", color: "#d35400" }}>
+                    🔥 Trending
+                  </span>
+                )}
+              </div>
+
+              <button
+                style={{
+                  ...styles.btn,
+                  opacity: product.quantity === 0 ? 0.5 : 1,
+                  cursor: product.quantity === 0 ? "not-allowed" : "pointer"
+                }}
+                disabled={product.quantity === 0}
+                onClick={() => {
+
+                  addToCart({
+                    id: product._id,
+                    name: product.name,
+                    price: finalPrice, // ✅ FIXED
+                    image: product.image,
+                    quantity: 1,
+                    weight: product.weight || "0",
+                  });
+
+                  alert("Added to Cart ✅");
+                }}
+              >
+                {product.quantity === 0 ? "Out of Stock" : "Add to Cart"}
+              </button>
+
             </div>
-
-            <button
-              style={{
-                ...styles.btn,
-                opacity: product.quantity === 0 ? 0.5 : 1,
-                cursor: product.quantity === 0 ? "not-allowed" : "pointer"
-              }}
-              disabled={product.quantity === 0}
-              onClick={() => {
-                addToCart({
-                  id: product._id,
-                  name: product.name,
-                  price: calculateFinalPrice(product, goldRates),
-                  image: product.image,
-                  quantity: 1,
-                  weight: product.weight || "0", // ⭐ FIX
-                });
-
-                alert("Added to Cart ✅");
-              }}
-            >
-              {product.quantity === 0 ? "Out of Stock" : "Add to Cart"}
-            </button>
-
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -171,7 +183,7 @@ const styles = {
   card: { border: "1px solid #ddd", padding: "15px", borderRadius: "10px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" },
   image: { width: "100%", height: "200px", objectFit: "cover" as const, cursor: "pointer", borderRadius: "8px" },
   price: { color: "#D4AF37", fontWeight: "bold" },
-  btn: { marginTop: "10px", padding: "8px 15px", backgroundColor: "#000", color: "#fff", border: "none", cursor: "pointer", borderRadius: "5px" },
+  btn: { marginTop: "10px", padding: "8px 15px", backgroundColor: "#000", color: "#fff", border: "none", borderRadius: "5px" },
 };
 
 export default Products;

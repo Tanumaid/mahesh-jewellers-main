@@ -6,11 +6,6 @@ export interface Product {
   weight?: string;
   purity?: string;
   makingCharges?: string;
-  gst?: string;
-  category?: string;
-  subcategory?: string;
-  quantity?: number;
-  stockStatus?: string;
-  soldCount?: number;
-  lowStock?: boolean;
+
+  metal?: string; // ✅ ADD THIS LINE
 }
