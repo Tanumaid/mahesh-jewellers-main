@@ -4,6 +4,17 @@ import axios from "axios";
 const OrdersAdmin = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exchangeState, setExchangeState] = useState<Record<string, any>>({});
+
+  const handleExchangeChange = (id: string, field: string, value: any) => {
+    setExchangeState(prev => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        [field]: value
+      }
+    }));
+  };
 
   // 🔥 Fetch all orders
   const fetchOrders = async () => {
@@ -36,7 +47,10 @@ const OrdersAdmin = () => {
 
   const handleApprove = async (id: string) => {
     try {
-      await axios.put(`http://localhost:5000/api/orders/${id}/approve`);
+      const payload = {
+        oldExchange: exchangeState[id] || null
+      };
+      await axios.put(`http://localhost:5000/api/orders/${id}/approve`, payload);
       alert("✅ Order Approved and Stock Updated");
       fetchOrders();
     } catch (err: any) {
@@ -92,14 +106,86 @@ const OrdersAdmin = () => {
                 {/* STATUS & BUTTONS */}
                 <div style={{ marginTop: "15px", borderTop: "1px solid #eee", paddingTop: "15px" }}>
                   {order.status === "Pending Approval" && (
-                    <div style={{ display: "flex", gap: "10px" }}>
-                      <button 
-                        style={{...styles.actionBtn, background: "#2ecc71"}} 
-                        onClick={() => handleApprove(order._id)}
-                      >
-                        Approve
-                      </button>
-                    </div>
+                    <>
+                      {/* OLD EXCHANGE FORM */}
+                      <div style={{ background: "#f9f9f9", padding: "10px", borderRadius: "8px", marginBottom: "15px", border: "1px solid #ddd" }}>
+                        <label style={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", cursor: "pointer", color: "#333" }}>
+                          <input 
+                            type="checkbox" 
+                            checked={exchangeState[order._id]?.isApplied || false} 
+                            onChange={(e) => handleExchangeChange(order._id, 'isApplied', e.target.checked)} 
+                          />
+                          Enable Old Exchange (Gold/Silver)
+                        </label>
+
+                        {exchangeState[order._id]?.isApplied && (
+                          <div style={{ marginTop: "10px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                            <div>
+                              <p style={{ fontSize: "12px", margin: "0 0 5px", color: "#555" }}>Gold Weight (g)</p>
+                              <input 
+                                type="number" 
+                                style={styles.inputSm} 
+                                value={exchangeState[order._id]?.goldWeight || ""} 
+                                onChange={(e) => handleExchangeChange(order._id, 'goldWeight', e.target.value)} 
+                              />
+                            </div>
+                            <div>
+                              <p style={{ fontSize: "12px", margin: "0 0 5px", color: "#555" }}>Gold Rate (₹)</p>
+                              <input 
+                                type="number" 
+                                style={styles.inputSm} 
+                                value={exchangeState[order._id]?.goldRate || ""} 
+                                onChange={(e) => handleExchangeChange(order._id, 'goldRate', e.target.value)} 
+                              />
+                            </div>
+                            <div>
+                              <p style={{ fontSize: "12px", margin: "0 0 5px", color: "#555" }}>Silver Weight (g)</p>
+                              <input 
+                                type="number" 
+                                style={styles.inputSm} 
+                                value={exchangeState[order._id]?.silverWeight || ""} 
+                                onChange={(e) => handleExchangeChange(order._id, 'silverWeight', e.target.value)} 
+                              />
+                            </div>
+                            <div>
+                              <p style={{ fontSize: "12px", margin: "0 0 5px", color: "#555" }}>Silver Rate (₹)</p>
+                              <input 
+                                type="number" 
+                                style={styles.inputSm} 
+                                value={exchangeState[order._id]?.silverRate || ""} 
+                                onChange={(e) => handleExchangeChange(order._id, 'silverRate', e.target.value)} 
+                              />
+                            </div>
+                            
+                            <div style={{ gridColumn: "span 2", marginTop: "5px", padding: "10px", background: "#e8f6f3", borderRadius: "5px" }}>
+                              {(() => {
+                                const gw = Number(exchangeState[order._id]?.goldWeight) || 0;
+                                const gr = Number(exchangeState[order._id]?.goldRate) || 0;
+                                const sw = Number(exchangeState[order._id]?.silverWeight) || 0;
+                                const sr = Number(exchangeState[order._id]?.silverRate) || 0;
+                                const tot = (gw * gr) + (sw * sr);
+                                const newFinal = Math.max(0, (order.totalAmount || order.price) - tot);
+                                return (
+                                  <>
+                                    <p style={{ margin: "0 0 5px", fontSize: "13px", fontWeight: "bold", color: "#333" }}>Total Exchange: <span style={{ color: "#2ecc71" }}>-₹{tot}</span></p>
+                                    <p style={{ margin: 0, fontSize: "14px", fontWeight: "bold", color: "#333" }}>Updated Final Bill: ₹{newFinal}</p>
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ display: "flex", gap: "10px" }}>
+                        <button 
+                          style={{...styles.actionBtn, background: "#2ecc71"}} 
+                          onClick={() => handleApprove(order._id)}
+                        >
+                          Approve
+                        </button>
+                      </div>
+                    </>
                   )}
 
                   {order.status === "Approved" && (
@@ -205,6 +291,15 @@ const styles = {
     borderRadius: "6px",
     cursor: "pointer",
     fontWeight: "bold",
+  },
+  
+  inputSm: {
+    width: "100%",
+    padding: "6px",
+    borderRadius: "4px",
+    border: "1px solid #ccc",
+    fontSize: "13px",
+    boxSizing: "border-box" as const,
   }
 };
 

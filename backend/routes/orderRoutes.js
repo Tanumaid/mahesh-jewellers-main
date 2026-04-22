@@ -99,13 +99,13 @@ async function generateInvoice(order) {
       doc.pipe(writeStream);
 
       // ================= HEADER =================
-      const logoPath = path.join(__dirname, "../uploads/logo.png");
+      const logoPath = path.join(__dirname, "../../frontend/public/img/logo.jpeg");
       if (fs.existsSync(logoPath)) {
-        doc.image(logoPath, 50, 40, { width: 150, align: "left" });
+        doc.image(logoPath, 50, 40, { width: 110, align: "left" });
       }
       doc.fillColor("#000000");
       doc.fontSize(20).text("MAHESH JEWELLERS", 200, 50, { align: "right" });
-      doc.fontSize(10).font("Helvetica").text("123 Main Bazaar, Mumbai, Maharashtra", 200, 75, { align: "right" });
+      doc.fontSize(10).font("Helvetica").text("Ashvi Bk, Tal.Sangamner, Dist.Ahilyanagar - 413714", 200, 75, { align: "right" });
       doc.text("GSTIN: 27AAAAA0000A1Z5", 200, 90, { align: "right" });
       doc.moveTo(50, 125).lineTo(545, 125).lineWidth(1).stroke("#eeeeee");
       doc.moveDown(2);
@@ -113,21 +113,30 @@ async function generateInvoice(order) {
       // ================= INVOICE DETAILS =================
       const topDetailsY = 145;
       doc.fontSize(10).font("Helvetica-Bold").text("Invoice Details", 50, topDetailsY);
-      doc.font("Helvetica").text(`Invoice ID: ${order.orderId}`, 50, topDetailsY + 15);
-      doc.text(`Date: ${new Date(order.createdAt).toLocaleString()}`, 50, topDetailsY + 30);
-      doc.text(`Place of Supply: Maharashtra`, 50, topDetailsY + 45);
-
+      doc.font("Helvetica").text(`Order ID: ${order.orderId}`, 50, topDetailsY + 15);
+      doc.text(`Date & Time: ${new Date(order.createdAt).toLocaleString()}`, 50, topDetailsY + 30);
+      
       const rightColX = 350;
+      doc.font("Helvetica-Bold").text("Payment Details", rightColX, topDetailsY);
+      doc.font("Helvetica").text(`Payment Mode: ${order.paymentStatus || "N/A"}`, rightColX, topDetailsY + 15);
+      doc.text(`Status: ${order.status || "N/A"}`, rightColX, topDetailsY + 30);
+
+      doc.moveTo(50, topDetailsY + 50).lineTo(545, topDetailsY + 50).stroke("#eeeeee");
+
+      // ================= BILLING DETAILS =================
+      const billingY = topDetailsY + 65;
       
       // Address formatting
       const rawAddress = user.address || "N/A";
       const addressLines = rawAddress.split(",").map(part => part.trim()).filter(part => part.length > 0);
 
-      doc.fontSize(11).font("Helvetica-Bold").text("Bill To:", rightColX, topDetailsY, { underline: true });
-      doc.font("Helvetica").text(`${user.name}`, rightColX, doc.y + 5);
-      doc.text(`${user.phoneNumber || user.mobile || "N/A"}`, rightColX, doc.y + 2);
+      doc.fontSize(11).font("Helvetica-Bold").text("Bill To", rightColX, billingY);
+      doc.moveDown(0.5);
+      doc.font("Helvetica").text(`Name: ${user.name}`, rightColX, doc.y);
+      doc.text(`Mobile: ${user.phoneNumber || user.mobile || "N/A"}`, rightColX, doc.y + 2);
       
       doc.moveDown(0.5);
+      doc.text("Address:", rightColX, doc.y);
 
       if (addressLines.length > 0) {
         addressLines.forEach((line) => {
@@ -141,13 +150,12 @@ async function generateInvoice(order) {
         doc.text("N/A", rightColX, doc.y, { width: 200, align: "left" });
       }
 
-      // We dynamically calculate the next Y for Aadhaar No
       doc.moveDown(0.5);
       const maskedAadhaar = user.aadhaarNumber || user.aadhaar ? `XXXX-XXXX-${(user.aadhaarNumber || user.aadhaar).slice(-4)}` : "N/A";
       doc.text(`Aadhaar No: ${maskedAadhaar}`, rightColX, doc.y);
 
       // Find lowest point for divider line
-      const currentY = Math.max(doc.y + 15, topDetailsY + 90);
+      let currentY = Math.max(doc.y + 15, billingY + 90);
       doc.moveTo(50, currentY).lineTo(545, currentY).stroke("#eeeeee");
 
       // ================= PRODUCT TABLE =================
@@ -161,7 +169,7 @@ async function generateInvoice(order) {
       doc.moveTo(50, tableTop - 5).lineTo(545, tableTop - 5).stroke("#cccccc");
       doc.moveTo(50, tableTop + 15).lineTo(545, tableTop + 15).stroke("#cccccc");
 
-      let currentY = tableTop + 25;
+      currentY = tableTop + 25;
       doc.font("Helvetica");
 
       order.items.forEach((item) => {
@@ -174,15 +182,61 @@ async function generateInvoice(order) {
       });
 
       doc.moveTo(50, currentY).lineTo(545, currentY).stroke("#cccccc");
+      
+      currentY += 15;
+      doc.font("Helvetica-Oblique").fontSize(9).text("GST calculated as per jewellery standard rate (3%)", 50, currentY);
+
+      // ================= GOLD / SILVER EXCHANGE =================
+      if (order.oldExchange && order.oldExchange.isApplied) {
+        currentY += 30;
+        doc.fillColor("#000000").font("Helvetica-Bold").fontSize(10).text("GOLD / SILVER EXCHANGE", 50, currentY);
+        currentY += 15;
+        
+        doc.rect(50, currentY - 5, 495, 20).fill("#f7f7f7");
+        doc.fillColor("#000000").font("Helvetica-Bold").fontSize(10);
+        doc.text("Type", 60, currentY);
+        doc.text("Weight(g)", 200, currentY, { width: 80, align: "center" });
+        doc.text("Rate", 320, currentY, { width: 90, align: "right" });
+        doc.text("Amount", 440, currentY, { width: 90, align: "right" });
+        doc.moveTo(50, currentY - 5).lineTo(545, currentY - 5).stroke("#cccccc");
+        doc.moveTo(50, currentY + 15).lineTo(545, currentY + 15).stroke("#cccccc");
+        
+        currentY += 25;
+        doc.font("Helvetica");
+
+        if (order.oldExchange.goldWeight > 0) {
+          doc.text("Gold", 60, currentY);
+          doc.text(`${order.oldExchange.goldWeight}g`, 200, currentY, { width: 80, align: "center" });
+          doc.text(`Rs. ${order.oldExchange.goldRate}`, 320, currentY, { width: 90, align: "right" });
+          doc.text(`Rs. ${order.oldExchange.goldAmount.toLocaleString("en-IN")}`, 440, currentY, { width: 90, align: "right" });
+          currentY += 20;
+        }
+
+        if (order.oldExchange.silverWeight > 0) {
+          doc.text("Silver", 60, currentY);
+          doc.text(`${order.oldExchange.silverWeight}g`, 200, currentY, { width: 80, align: "center" });
+          doc.text(`Rs. ${order.oldExchange.silverRate}`, 320, currentY, { width: 90, align: "right" });
+          doc.text(`Rs. ${order.oldExchange.silverAmount.toLocaleString("en-IN")}`, 440, currentY, { width: 90, align: "right" });
+          currentY += 20;
+        }
+
+        doc.moveTo(50, currentY).lineTo(545, currentY).stroke("#cccccc");
+        currentY += 10;
+        
+        doc.font("Helvetica-Bold");
+        doc.text(`Total Exchange: Rs. ${order.oldExchange.totalExchange.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 280, currentY, { width: 250, align: "right" });
+        currentY += 15;
+      }
 
       // ================= GST & TOTAL SECTION =================
       const totalAmount = order.totalAmount;
       const baseAmount = totalAmount / 1.03;
       const gstAmount = totalAmount - baseAmount;
-      currentY += 20;
       const fmt = (num) => `Rs. ${num.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-      doc.font("Helvetica");
+      currentY += 20;
+      
+      doc.font("Helvetica").fontSize(10);
       doc.text("Subtotal (before GST):", 280, currentY, { width: 150, align: "left" });
       doc.text(fmt(baseAmount), 440, currentY, { width: 90, align: "right" });
       
@@ -194,32 +248,51 @@ async function generateInvoice(order) {
       doc.moveTo(280, currentY).lineTo(545, currentY).stroke("#cccccc");
       
       currentY += 10;
-      doc.font("Helvetica-Bold").fontSize(12);
+      doc.font("Helvetica-Bold").fontSize(10);
       doc.text("Total Amount:", 280, currentY, { width: 150, align: "left" });
       doc.text(fmt(totalAmount), 440, currentY, { width: 90, align: "right" });
 
       currentY += 15;
-      doc.moveTo(280, currentY).lineTo(545, currentY).stroke("#cccccc");
+      doc.font("Helvetica").fontSize(10);
 
-      // Advance and Remaining Breakdown
-      currentY += 15;
-      doc.font("Helvetica");
-      doc.text("Advance Paid (30%):", 280, currentY, { width: 150, align: "left" });
-      doc.text(fmt(order.advanceAmount || (totalAmount * 0.3)), 440, currentY, { width: 90, align: "right" });
+      if (order.oldExchange && order.oldExchange.isApplied) {
+        doc.text("Old Exchange Deduction:", 280, currentY, { width: 150, align: "left" });
+        doc.text(`- ${fmt(order.oldExchange.totalExchange)}`, 440, currentY, { width: 90, align: "right" });
+        
+        currentY += 15;
+        doc.moveTo(280, currentY).lineTo(545, currentY).stroke("#cccccc");
+        currentY += 10;
+
+        doc.font("Helvetica-Bold");
+        const payableAmount = Math.max(0, totalAmount - order.oldExchange.totalExchange);
+        doc.text("Final Payable Amount:", 280, currentY, { width: 150, align: "left" });
+        doc.text(fmt(payableAmount), 440, currentY, { width: 90, align: "right" });
+        currentY += 15;
+        doc.font("Helvetica");
+      }
+
+      const currentPayable = order.oldExchange && order.oldExchange.isApplied 
+        ? Math.max(0, totalAmount - order.oldExchange.totalExchange) 
+        : totalAmount;
+
+      const currentAdvance = order.advanceAmount || (currentPayable * 0.3);
+      const currentRemaining = order.remainingAmount || Math.max(0, currentPayable - currentAdvance);
+
+      doc.text("Advance Paid:", 280, currentY, { width: 150, align: "left" });
+      doc.text(fmt(currentAdvance), 440, currentY, { width: 90, align: "right" });
 
       currentY += 15;
       doc.text("Remaining (Pay at Store):", 280, currentY, { width: 150, align: "left" });
-      doc.text(fmt(order.remainingAmount || (totalAmount * 0.7)), 440, currentY, { width: 90, align: "right" });
+      doc.text(fmt(currentRemaining), 440, currentY, { width: 90, align: "right" });
 
-      currentY += 15;
-      doc.moveTo(280, currentY).lineTo(545, currentY).stroke("#cccccc");
+      currentY += 25;
 
       // ================= FOOTER =================
       doc.fontSize(10).font("Helvetica");
       const footerY = 750;
-      doc.moveTo(50, footerY - 10).lineTo(545, footerY - 10).stroke("#eeeeee");
       doc.text("Thank you for shopping with us", 50, footerY, { align: "center", width: 495 });
-      doc.font("Helvetica-Bold").text("Mahesh Jewellers | Trusted Since 1995", 50, footerY + 15, { align: "center", width: 495 });
+      doc.moveDown(0.5);
+      doc.font("Helvetica-Bold").text("Mahesh Jewellers | Trusted Since 1995", 50, doc.y, { align: "center", width: 495 });
 
       doc.end();
 
@@ -236,11 +309,41 @@ async function generateInvoice(order) {
 // ✅ APPROVE ORDER (Admin)
 router.put("/:id/approve", async (req, res) => {
   try {
+    const { oldExchange } = req.body;
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: "Order not found" });
 
     if (order.status === "Approved") {
       return res.status(400).json({ message: "Already approved" });
+    }
+
+    // Process old exchange if provided and applied
+    if (oldExchange && oldExchange.isApplied) {
+      const goldWeight = Number(oldExchange.goldWeight) || 0;
+      const goldRate = Number(oldExchange.goldRate) || 0;
+      const silverWeight = Number(oldExchange.silverWeight) || 0;
+      const silverRate = Number(oldExchange.silverRate) || 0;
+
+      const goldAmount = goldWeight * goldRate;
+      const silverAmount = silverWeight * silverRate;
+      const totalExchange = goldAmount + silverAmount;
+
+      if (totalExchange > order.totalAmount) {
+        return res.status(400).json({ message: "Exchange amount cannot exceed total order amount" });
+      }
+
+      order.oldExchange = {
+        isApplied: true,
+        goldWeight,
+        goldRate,
+        goldAmount,
+        silverWeight,
+        silverRate,
+        silverAmount,
+        totalExchange
+      };
+
+      order.remainingAmount = Math.max(0, order.totalAmount - order.advanceAmount - totalExchange);
     }
 
     // Reduce stock

@@ -70,17 +70,15 @@ const ProductCard = ({ product }: any) => {
 
       {/* Stock Badges */}
       <div style={{ marginTop: "10px", display: "flex", justifyContent: "center", gap: "8px", flexWrap: "wrap" }}>
-        {product.stockStatus && (
-          <span style={{ 
-            padding: "4px 8px", 
-            borderRadius: "12px", 
-            fontSize: "12px", 
-            fontWeight: "bold",
-            color: "#fff",
-            backgroundColor: product.stockStatus === "In Stock" ? "#27ae60" : 
-                             product.stockStatus === "Out of Stock" ? "#e74c3c" : "#e67e22" 
-          }}>
-            {product.stockStatus}
+        {product.quantity === 0 && (
+          <span style={{ padding: "4px 8px", borderRadius: "12px", fontSize: "12px", fontWeight: "bold", color: "#fff", backgroundColor: "#e74c3c" }}>
+            Out of Stock
+          </span>
+        )}
+
+        {product.quantity === 1 && (
+          <span style={{ padding: "4px 8px", borderRadius: "12px", fontSize: "12px", fontWeight: "bold", color: "#fff", backgroundColor: "#e67e22" }}>
+            Only 1 left
           </span>
         )}
 
