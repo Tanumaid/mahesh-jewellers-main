@@ -12,7 +12,8 @@ const ProductsAdmin = () => {
     name: "",
     price: "",
     weight: "",
-    image: ""
+    image: "",
+    gender: "Women"
   });
 
   // 🔥 Fetch products
@@ -39,7 +40,8 @@ const ProductsAdmin = () => {
       name: p.name,
       price: p.price,
       weight: p.weight,
-      image: p.image
+      image: p.image,
+      gender: p.gender || "Women"
     });
 
     setEditId(p._id);
@@ -70,7 +72,8 @@ const ProductsAdmin = () => {
         name: "",
         price: "",
         weight: "",
-        image: ""
+        image: "",
+        gender: "Women"
       });
 
       fetchProducts();
@@ -129,6 +132,11 @@ const ProductsAdmin = () => {
             style={styles.input}
           />
 
+          <select name="gender" value={form.gender} onChange={handleChange} style={styles.input}>
+            <option value="Women">Women</option>
+            <option value="Men">Men</option>
+          </select>
+
           <button style={styles.updateBtn} onClick={handleUpdate}>
             Update Product
           </button>
@@ -153,6 +161,7 @@ const ProductsAdmin = () => {
 
             <h4>{p.name}</h4>
             <p style={styles.meta}>{p.weight}</p>
+            <p style={{...styles.meta, fontWeight: "bold"}}>{(p.gender || "Women") === "Men" ? "🧔 Men" : "👩 Women"}</p>
 
             <div style={styles.btnGroup}>
               <button

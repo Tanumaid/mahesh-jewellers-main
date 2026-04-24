@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import type { Product } from "../types/Product";
 import CategoryFilter from "../components/CategoryFilter";
 import SubcategoryFilter from "../components/SubcategoryFilter";
+import GenderFilter from "../components/GenderFilter";
 import { calculateFinalPrice, formatPrice } from "../utils/priceCalculator";
 
 const Products = () => {
@@ -14,6 +15,7 @@ const Products = () => {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedSubcategory, setSelectedSubcategory] = useState("");
+  const [selectedGender, setSelectedGender] = useState("All");
   const [goldRates, setGoldRates] = useState<any>({});
   const [silverRates, setSilverRates] = useState<any>({});
   const [loading, setLoading] = useState(true);
@@ -31,6 +33,7 @@ const Products = () => {
 
         if (selectedCategory !== "All") params.append("category", selectedCategory);
         if (selectedSubcategory) params.append("subcategory", selectedSubcategory);
+        if (selectedGender !== "All") params.append("gender", selectedGender);
 
         if (params.toString()) {
           url += `?${params.toString()}&t=${Date.now()}`;
@@ -55,7 +58,7 @@ const Products = () => {
     };
 
     fetchData();
-  }, [selectedCategory, selectedSubcategory]);
+  }, [selectedCategory, selectedSubcategory, selectedGender]);
 
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
@@ -85,6 +88,11 @@ const Products = () => {
         categories={["All", ...Object.keys(categoriesData)]}
         selectedCategory={selectedCategory}
         onSelectCategory={handleCategorySelect}
+      />
+
+      <GenderFilter
+        selectedGender={selectedGender}
+        onSelectGender={setSelectedGender}
       />
 
       {selectedCategory !== "All" && (
@@ -117,6 +125,11 @@ const Products = () => {
                 alt={product.name}
                 onClick={() => navigate(`/product/${product._id}`)}
               />
+
+              {/* ✅ Gender Badge */}
+              <div style={styles.genderBadge}>
+                {(product.gender || "Women") === "Men" ? "🧔 Men" : "👩 Women"}
+              </div>
 
               <h3>{product.name}</h3>
 
@@ -183,10 +196,11 @@ const styles = {
   center: { padding: "40px", textAlign: "center" as const },
   search: { width: "300px", padding: "10px", marginBottom: "20px", border: "1px solid #ccc", borderRadius: "5px" },
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "20px" },
-  card: { border: "1px solid #ddd", padding: "15px", borderRadius: "10px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" },
+  card: { border: "1px solid #ddd", padding: "15px", borderRadius: "10px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", position: "relative" as const },
   image: { width: "100%", height: "200px", objectFit: "cover" as const, cursor: "pointer", borderRadius: "8px" },
   price: { color: "#D4AF37", fontWeight: "bold" },
   btn: { marginTop: "10px", padding: "8px 15px", backgroundColor: "#000", color: "#fff", border: "none", borderRadius: "5px" },
+  genderBadge: { position: "absolute" as const, top: "25px", right: "25px", backgroundColor: "rgba(0,0,0,0.7)", color: "white", padding: "4px 8px", borderRadius: "12px", fontSize: "12px", fontWeight: "bold" },
 };
 
 export default Products;

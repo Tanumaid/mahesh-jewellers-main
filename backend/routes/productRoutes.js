@@ -13,11 +13,14 @@ const getStockStatus = (quantity) => {
 // ✅ GET ALL PRODUCTS (With Filtering)
 router.get("/", async (req, res) => {
   try {
-    const { category, subcategory } = req.query;
+    const { category, subcategory, gender } = req.query;
     let query = {};
     
     if (category) query.category = category;
     if (subcategory) query.subcategory = subcategory;
+    if (gender && gender !== "All") {
+      query.gender = gender;
+    }
 
     const products = await Product.find(query).lean();
     const productsWithStock = products.map((p) => ({
@@ -35,9 +38,9 @@ router.get("/", async (req, res) => {
 // ✅ ADD PRODUCT (ADMIN)
 router.post("/", async (req, res) => {
   try {
-    const { name, price, weight, purity, makingCharges, gst, image, category, subcategory, quantity } = req.body;
+    const { name, price, weight, purity, makingCharges, gst, image, category, subcategory, quantity, gender } = req.body;
 
-    if (!name || !weight || !purity || !makingCharges || !gst || !category || !subcategory) {
+    if (!name || !weight || !purity || !makingCharges || !gst || !category || !subcategory || !gender) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -55,6 +58,7 @@ router.post("/", async (req, res) => {
       image,
       category,
       subcategory,
+      gender,
       quantity: quantity || 0,
     });
 
@@ -73,14 +77,22 @@ router.post("/", async (req, res) => {
 // UPDATE PRODUCT
 router.put("/:id", async (req, res) => {
   try {
-    const { category, purity } = req.body;
+    const { category, purity, gender } = req.body;
     if (category && purity && purityConfig[category] && !purityConfig[category].includes(purity)) {
       return res.status(400).json({ message: "Invalid purity for the selected category" });
     }
 
+    console.log("Product gender update received:", gender);
+
+    // Enforce gender is included in update body explicitly if provided
+    let updateBody = { ...req.body };
+    if (gender) {
+      updateBody.gender = gender;
+    }
+
     const updated = await Product.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateBody,
       { new: true }
     );
 

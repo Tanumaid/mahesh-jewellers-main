@@ -13,6 +13,7 @@ const Admin = () => {
     image: "",
     category: "",
     subcategory: "",
+    gender: "Women",
     quantity: "",
   });
 
@@ -49,8 +50,8 @@ const Admin = () => {
   const handleSubmit = async () => {
 
     // ✅ VALIDATION
-    if (!form.name || !form.weight || !form.purity || !form.makingCharges || !form.gst || !form.category || !form.subcategory || form.quantity === "") {
-      alert("Please fill all required fields, including quantity, category, and subcategory.");
+    if (!form.name || !form.weight || !form.purity || !form.makingCharges || !form.gst || !form.category || !form.subcategory || !form.gender || form.quantity === "") {
+      alert("Please fill all required fields, including quantity, category, subcategory, and gender.");
       return;
     }
 
@@ -76,6 +77,7 @@ const Admin = () => {
         image: "",
         category: "",
         subcategory: "",
+        gender: "Women",
         quantity: "",
       });
 
@@ -163,6 +165,12 @@ const Admin = () => {
               <option key={sub} value={sub}>{sub}</option>
             ))}
           </select>
+
+          {/* ✅ GENDER DROPDOWN */}
+          <select name="gender" value={form.gender || "Women"} onChange={handleChange} style={styles.input}>
+            <option value="Women">Women</option>
+            <option value="Men">Men</option>
+          </select>
           
           <input name="makingCharges" value={form.makingCharges} onChange={handleChange} placeholder="Making Charges ₹" style={styles.input} />
 
@@ -195,6 +203,7 @@ const Admin = () => {
             <h4>{p.name}</h4>
             <p style={styles.meta}>{p.weight} g | {p.purity}</p>
             <p style={styles.meta}>{p.category} - {p.subcategory}</p>
+            <p style={{...styles.meta, fontWeight: "bold"}}>{(p.gender || "Women") === "Men" ? "🧔 Men" : "👩 Women"}</p>
 
             {/* Low Stock Warning */}
             {p.lowStock && (
