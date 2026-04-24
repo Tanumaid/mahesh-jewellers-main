@@ -72,6 +72,12 @@ const orderSchema = new mongoose.Schema({
     default: null,
   },
 
+  orderType: {
+    type: String,
+    enum: ["Online", "POS"],
+    default: "Online"
+  },
+
   oldExchange: {
     isApplied: { type: Boolean, default: false },
     metalType: { type: String, enum: ["Gold", "Silver", "Both"], default: "Gold" },

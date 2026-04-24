@@ -83,7 +83,13 @@ router.post("/book", async (req, res) => {
 async function generateInvoice(order) {
   return new Promise(async (resolve, reject) => {
     try {
-      const user = await User.findOne({ email: order.userEmail });
+      let user = null;
+      if (order.orderType === "POS") {
+        user = order.temporaryCustomerData;
+      } else {
+        user = await User.findOne({ email: order.userEmail });
+      }
+
       if (!user) return reject(new Error("User not found for invoice"));
 
       const invoicesDir = path.join(__dirname, "../uploads/invoices");
@@ -238,19 +244,26 @@ async function generateInvoice(order) {
         doc.font("Helvetica");
       }
 
-      const currentPayable = order.oldExchange && order.oldExchange.isApplied 
-        ? Math.max(0, totalAmount - order.oldExchange.exchangeAmount) 
-        : totalAmount;
+      if (order.orderType === "POS") {
+        currentY += 10;
+        doc.text("Status:", 280, currentY, { width: 150, align: "left" });
+        doc.fillColor("#27ae60").text("Paid in Full", 440, currentY, { width: 90, align: "right" });
+        doc.fillColor("#000000"); // reset
+      } else {
+        const currentPayable = order.oldExchange && order.oldExchange.isApplied 
+          ? Math.max(0, totalAmount - order.oldExchange.exchangeAmount) 
+          : totalAmount;
 
-      const currentAdvance = order.advanceAmount || (currentPayable * 0.3);
-      const currentRemaining = order.remainingAmount || Math.max(0, currentPayable - currentAdvance);
+        const currentAdvance = order.advanceAmount || (currentPayable * 0.3);
+        const currentRemaining = order.remainingAmount || Math.max(0, currentPayable - currentAdvance);
 
-      doc.text("Advance Paid:", 280, currentY, { width: 150, align: "left" });
-      doc.text(fmt(currentAdvance), 440, currentY, { width: 90, align: "right" });
+        doc.text("Advance Paid:", 280, currentY, { width: 150, align: "left" });
+        doc.text(fmt(currentAdvance), 440, currentY, { width: 90, align: "right" });
 
-      currentY += 15;
-      doc.text("Remaining (Pay at Store):", 280, currentY, { width: 150, align: "left" });
-      doc.text(fmt(currentRemaining), 440, currentY, { width: 90, align: "right" });
+        currentY += 15;
+        doc.text("Remaining (Pay at Store):", 280, currentY, { width: 150, align: "left" });
+        doc.text(fmt(currentRemaining), 440, currentY, { width: 90, align: "right" });
+      }
 
       currentY += 25;
 
@@ -376,6 +389,141 @@ router.get("/summary", async (req, res) => {
 
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+
+// ✅ CREATE POS ORDER (Admin In-Store Walk-in)
+router.post("/pos-order", async (req, res) => {
+  try {
+    const { customerName, mobile, address, items, exchange } = req.body;
+
+    if (!items || items.length === 0) {
+      return res.status(400).json({ message: "No items in POS order" });
+    }
+
+    let totalAmount = 0;
+    let totalWeight = 0;
+
+    // Fetch live rates for backend calculation
+    const GoldRate = require("../models/goldRate");
+    const SilverRate = require("../models/silverRate");
+    const rateDoc = await GoldRate.findOne();
+    const silverDoc = await SilverRate.findOne();
+    const goldRates = rateDoc ? rateDoc.rates : {};
+    const silverRates = silverDoc ? silverDoc.rates : {};
+
+    const calculateBackendPrice = (product, gRates, sRates) => {
+      const weight = parseFloat(product.weight || "0");
+      const making = parseFloat(product.makingCharges || "0");
+      const metalType =
+        product.metal?.toLowerCase() ||
+        (product.purity?.toLowerCase().includes("silver") ? "silver" : "gold");
+
+      if (metalType === "silver") {
+        const rawPurity = product.purity || "";
+        const purityMatch = rawPurity.match(/\d+/);
+        const purity = purityMatch ? purityMatch[0] : "";
+        const rate = (sRates && purity && sRates[purity] !== undefined) ? Number(sRates[purity]) : 0;
+        
+        const silverPrice = weight * rate || 0;
+        const metalGST = silverPrice * 0.03;
+        const makingGST = making * 0.05;
+        return silverPrice + making + metalGST + makingGST;
+      } else {
+        const purity = product.purity || "22K";
+        const rate = gRates[purity] || 0;
+        const goldPrice = weight * rate;
+        const goldGST = goldPrice * 0.03;
+        const makingGST = making * 0.05;
+        return goldPrice + making + goldGST + makingGST;
+      }
+    };
+
+    // 1. Validate & Reduce Stock
+    for (const item of items) {
+      const product = await Product.findById(item.productId);
+      if (!product) {
+        return res.status(404).json({ message: `Product not found: ${item.name}` });
+      }
+
+      if (product.quantity < item.quantity) {
+        return res.status(400).json({ message: `Insufficient stock for ${product.name}` });
+      }
+
+      // Deduct stock
+      product.quantity -= item.quantity;
+      product.soldCount = (product.soldCount || 0) + item.quantity;
+      await product.save();
+
+      // Recalculate price directly from DB product and live rates!
+      const recalculatedPrice = calculateBackendPrice(product, goldRates, silverRates);
+      
+      // Update item to use backend-verified price
+      item.price = recalculatedPrice;
+
+      totalAmount += recalculatedPrice * item.quantity;
+      totalWeight += (item.weight || 0) * item.quantity;
+    }
+
+    // 2. Handle Old Exchange
+    let oldExchange = { isApplied: false };
+    if (exchange && exchange.amount > 0) {
+      if (exchange.amount > totalAmount) {
+        return res.status(400).json({ message: "Exchange amount cannot exceed total order amount" });
+      }
+      oldExchange = {
+        isApplied: true,
+        metalType: exchange.metal || "Gold",
+        exchangeAmount: exchange.amount
+      };
+    }
+
+    const exchangeAmount = oldExchange.isApplied ? oldExchange.exchangeAmount : 0;
+    const finalAmount = Math.max(0, totalAmount - exchangeAmount);
+    
+    // In POS, it's a full payment system, no advance.
+    const advanceAmount = finalAmount;
+    const remainingAmount = 0;
+
+    // 3. Create Order
+    const orderId = `POS${Date.now()}`;
+    const newOrder = new Order({
+      orderId,
+      userEmail: mobile + "@pos.local", // placeholder for POS walk-in
+      userName: customerName || "Walk-in Customer",
+      items,
+      totalAmount,
+      totalWeight,
+      status: "Approved", // Auto-approved for POS
+      paymentStatus: "Completed",
+      advanceAmount,
+      remainingAmount,
+      isBooked: true,
+      orderType: "POS",
+      oldExchange
+    });
+
+    // Address isn't in Order schema? The PDF needs it. 
+    // The PDF generator uses `user.address` or `user.mobile`.
+    // We don't have a user record for POS, so we attach it to the order temporarily for PDF gen.
+    newOrder.temporaryCustomerData = {
+      name: customerName || "Walk-in Customer",
+      mobile: mobile || "N/A",
+      address: address || "In-Store Purchase"
+    };
+
+    // Generate Invoice
+    const invoiceUrl = await generateInvoice(newOrder);
+    newOrder.invoiceUrl = invoiceUrl;
+
+    await newOrder.save();
+
+    res.status(201).json({ message: "POS Order created successfully", order: newOrder });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error generating POS Order" });
   }
 });
 

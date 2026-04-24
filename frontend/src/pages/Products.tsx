@@ -15,6 +15,7 @@ const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedSubcategory, setSelectedSubcategory] = useState("");
   const [goldRates, setGoldRates] = useState<any>({});
+  const [silverRates, setSilverRates] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -39,10 +40,12 @@ const Products = () => {
 
         const productRes = await axios.get(url);
         const goldRes = await axios.get("http://localhost:5000/api/goldrate");
+        const silverRes = await axios.get("http://localhost:5000/api/silverrate").catch(() => ({ data: {} }));
         const categoryRes = await axios.get("http://localhost:5000/api/categories");
 
         setProducts(productRes.data || []);
         setGoldRates(goldRes.data?.rates || {});
+        setSilverRates(silverRes.data?.rates || {});
         setCategoriesData(categoryRes.data || {});
       } catch {
         setError("Failed to load data");
@@ -101,8 +104,8 @@ const Products = () => {
 
           // ✅ IMPORTANT FIX: calculate only when rates loaded
           const finalPrice =
-            Object.keys(goldRates).length > 0
-              ? calculateFinalPrice(product, goldRates)
+            Object.keys(goldRates).length > 0 || Object.keys(silverRates).length > 0
+              ? calculateFinalPrice(product, goldRates, silverRates)
               : "0.00";
 
           return (

@@ -25,6 +25,7 @@ import UsersAdmin from "./pages/admin/UsersAdmin";
 import Analytics from "./pages/admin/Analytics";
 import GoldRateAdmin from "./pages/admin/GoldRateAdmin";
 import OrdersAdmin from "./pages/admin/OrdersAdmin";
+import POSAdmin from "./pages/admin/POSAdmin";
 import AdminRoute from "./components/AdminRoute";
 import AdminLogin from "./pages/AdminLogin";
 import AdminLayout from "./pages/AdminLayout";
@@ -84,6 +85,7 @@ const AppContent = () => {
           <Route index element={<Dashboard />} />
           <Route path="products" element={<ProductsAdmin />} />
           <Route path="orders" element={<OrdersAdmin />} />
+          <Route path="pos" element={<POSAdmin />} />
           <Route path="users" element={<UsersAdmin />} />
           <Route path="goldrate" element={<GoldRateAdmin />} />
           <Route path="analytics" element={<Analytics />} />

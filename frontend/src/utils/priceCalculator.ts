@@ -1,35 +1,19 @@
 import type { Product } from "../types/Product";
+import { calculateGoldPriceBreakdown, calculateGoldFinalPrice } from "./goldPriceCalculator";
+import { calculateSilverPriceBreakdown, calculateSilverFinalPrice } from "./silverPriceCalculator";
 
-export const calculatePriceBreakdown = (product: Product, goldRates: any) => {
-  if (!product) return null;
+export const calculateFinalPrice = (product: Product, goldRates: any, silverRates: any): string => {
+  if (!product) return "0.00";
 
-  const weight = parseFloat(product.weight || "0");
-  const making = parseFloat(product.makingCharges || "0");
-  const purity = product.purity || "22K";
+  const metalType =
+    product.metal?.toLowerCase() ||
+    (product.purity?.toLowerCase().includes("silver") ? "silver" : "gold");
 
-  const rate = goldRates[purity] || 0;
-
-  const goldPrice = weight * rate;
-  
-  const goldGST = goldPrice * 0.03; // Standard 3% GST on Gold
-  const makingGST = making * 0.05; // Standard 5% GST on Making Charges
-  const totalGST = goldGST + makingGST;
-
-  const final = goldPrice + making + totalGST;
-
-  return {
-    goldPrice,
-    making,
-    goldGST,
-    makingGST,
-    totalGST,
-    final
-  };
-};
-
-export const calculateFinalPrice = (product: Product, goldRates: any): string => {
-  const breakdown = calculatePriceBreakdown(product, goldRates);
-  return breakdown ? breakdown.final.toFixed(2) : "0.00";
+  if (metalType === "silver") {
+    return calculateSilverFinalPrice(product, silverRates);
+  } else {
+    return calculateGoldFinalPrice(product, goldRates);
+  }
 };
 
 export const formatPrice = (price: string | number): string => {

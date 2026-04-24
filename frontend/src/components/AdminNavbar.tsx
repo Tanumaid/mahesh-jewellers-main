@@ -18,6 +18,7 @@ const AdminNavbar = () => {
                 <Link to="">Dashboard</Link>
                 {/* <Link to="products">Products</Link> */}
                 <Link to="orders">Orders</Link>
+                <Link to="pos">💳 POS Billing</Link>
                 <Link to="users">Users</Link>
                 <Link to="goldrate">Gold Rate</Link>
                 <Link to="analytics">Analytics</Link>
